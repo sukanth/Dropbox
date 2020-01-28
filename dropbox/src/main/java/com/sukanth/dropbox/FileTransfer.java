@@ -66,25 +66,6 @@ public class FileTransfer {
         return new DbxClientV2(config, ACCESS_TOKEN);
     }
 
-    /**
-     * @param folder      folder location
-     * @param recursively recursive list flag
-     * @return List with file paths
-     * @throws DbxException
-     */
-    public static List<String> listFiles(String folder, boolean recursively)
-            throws DbxException {
-        if (folder.endsWith("/")) {
-            folder = folder.substring(0, folder.length() - 1);
-        }
-        ListFolderResult result = dropboxClient.files().listFolderBuilder(folder).withRecursive(recursively).start();
-        List<String> filepaths = new ArrayList<>();
-        result.getEntries().forEach((metadata) -> {
-            filepaths.add(metadata.getPathLower());
-        });
-        return filepaths;
-    }
-
     public static List<String> listFiles(String folderPath) throws Exception {
         List<String> files = null;
         try {
