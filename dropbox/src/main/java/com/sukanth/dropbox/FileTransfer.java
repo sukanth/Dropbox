@@ -31,10 +31,10 @@ public class FileTransfer {
                 String destinationFolderPath = destinationLocation.concat(File.separator).concat(folder.getName());
                 File file = new File(destinationFolderPath);
                 if (file.exists()) {
-                    listFiles(folder.getPathLower());
+                    List<String> strings = listFiles(folder.getPathLower());
                 } else {
                     if (file.mkdir()) {
-                        listFiles(folder.getPathLower());
+                        List<String> strings = listFiles(folder.getPathLower());
                     } else {
                         System.out.println("Can not create folder in path :  " + file.getAbsolutePath());
                     }
@@ -66,6 +66,12 @@ public class FileTransfer {
         return new DbxClientV2(config, ACCESS_TOKEN);
     }
 
+    /**
+     * Method to list files in a folder
+     * @param folderPath
+     * @return files
+     * @throws Exception
+     */
     public static List<String> listFiles(String folderPath) throws Exception {
         List<String> files = null;
         try {
