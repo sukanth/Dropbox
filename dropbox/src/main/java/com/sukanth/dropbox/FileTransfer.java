@@ -1,17 +1,15 @@
 package com.sukanth.dropbox;
 
+import com.dropbox.core.DbxDownloader;
 import com.dropbox.core.DbxException;
 import com.dropbox.core.DbxRequestConfig;
 import com.dropbox.core.v2.DbxClientV2;
-import com.dropbox.core.v2.files.ListFolderErrorException;
-import com.dropbox.core.v2.files.ListFolderResult;
-import com.dropbox.core.v2.files.Metadata;
+import com.dropbox.core.v2.files.*;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.*;
 
 /**
  * @author Sukanth Gunda
@@ -29,14 +27,23 @@ public class FileTransfer {
             List<Metadata> foldersInPhotos = dropboxClient.files().listFolder(File.separator.concat("Photos")).getEntries();
             for (Metadata folder : foldersInPhotos) {
                 String destinationFolderPath = destinationLocation.concat(File.separator).concat(folder.getName());
-                File file = new File(destinationFolderPath);
-                if (file.exists()) {
-                    List<String> strings = listFiles(folder.getPathLower());
+                File destPath = new File(destinationFolderPath);
+                if (destPath.exists()) {
+                    List<File> filesInFolder = listFiles(folder.getPathLower());
+                    for (File fileInFolder : filesInFolder) {
+                        File destinationFile = new File(destinationFolderPath.concat(File.separator).concat(fileInFolder.getName()));
+                        if(!destinationFile.exists()){
+                            downloadFile(dropboxClient, fileInFolder.getAbsolutePath(), destinationFolderPath.concat(File.separator).concat(fileInFolder.getName()));
+                        }
+                    }
                 } else {
-                    if (file.mkdir()) {
-                        List<String> strings = listFiles(folder.getPathLower());
+                    if (destPath.mkdir()) {
+                        List<File> filesInFolder = listFiles(folder.getPathLower());
+                        for (File fileInFolder : filesInFolder) {
+                            downloadFile(dropboxClient, fileInFolder.getAbsolutePath(), destinationFolderPath.concat(File.separator).concat(fileInFolder.getName()));
+                        }
                     } else {
-                        System.out.println("Can not create folder in path :  " + file.getAbsolutePath());
+                        System.out.println("Can not create folder in path :  " + destPath.getAbsolutePath());
                     }
                 }
             }
@@ -68,28 +75,51 @@ public class FileTransfer {
 
     /**
      * Method to list files in a folder
-     * @param folderPath
+     *
+     * @param sourcePath
      * @return files
      * @throws Exception
      */
-    public static List<String> listFiles(String folderPath) throws Exception {
-        List<String> files = null;
+    public static List<File> listFiles(String sourcePath) throws Exception {
+        List<File> files = null;
         try {
-            files = new ArrayList<String>();
-            ListFolderResult listFolderResult = dropboxClient.files().listFolder(folderPath);
+            files = new ArrayList<File>();
+            ListFolderResult listFolderResult = dropboxClient.files().listFolder(sourcePath);
             for (Metadata metadata : listFolderResult.getEntries()) {
                 String filePath = metadata.getPathLower();
-                files.add(filePath);
+                files.add(new File(filePath));
             }
-            Collections.sort(files, new Comparator<String>() {
-                @Override
-                public int compare(String s1, String s2) {
-                    return s2.compareTo(s1);
-                }
-            });
         } catch (Exception e) {
             e.printStackTrace();
         }
         return files;
+    }
+
+    /**
+     * Download Dropbox File to Local Computer
+     *
+     * @param client                Current connected client
+     * @param dropBoxFilePath       The file path on the Dropbox cloud server -> [/foldername/something.txt]
+     * @param localFileAbsolutePath The absolute file path of the File on the Local File System
+     * @throws DbxException
+     * @throws DownloadErrorException
+     * @throws IOException
+     */
+    public static void downloadFile(DbxClientV2 client, String dropBoxFilePath, String localFileAbsolutePath) throws DownloadErrorException, DbxException, IOException {
+
+        //Create DbxDownloader
+        DbxDownloader<FileMetadata> dl = client.files().download(dropBoxFilePath);
+
+        //FileOutputStream
+        FileOutputStream fOut = new FileOutputStream(localFileAbsolutePath);
+        System.out.println("Downloading .... " + dropBoxFilePath);
+
+
+        //Add a progress Listener
+        dl.download(new ProgressOutputStream(fOut, dl.getResult().getSize(), (long completed, long totalSize) -> {
+
+            System.out.println((completed * 100) / totalSize + " %");
+
+        }));
     }
 }
