@@ -1,9 +1,7 @@
 package com.sukanth.dropbox;
 
-import com.dropbox.core.DbxException;
 import com.dropbox.core.DbxRequestConfig;
 import com.dropbox.core.v2.DbxClientV2;
-import com.dropbox.core.v2.files.ListFolderErrorException;
 import com.dropbox.core.v2.files.Metadata;
 
 import java.io.File;
