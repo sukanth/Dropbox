@@ -16,24 +16,18 @@ import java.util.concurrent.ThreadPoolExecutor;
  * Program to transfer files from dropbox to desired location.
  */
 public class FileTransfer {
-    private static DbxClientV2 dropboxClient = null;
-    private static String destinationLocation = null;
     private static final String usrHome = System.getProperty("user.home");
 
     public static void main(String[] args) {
-        destinationLocation = usrHome.concat(File.separator.concat("Desktop"));
+        String destinationLocation = usrHome.concat(File.separator.concat("Desktop"));
         try {
-            dropboxClient = authenticate();
+            DbxClientV2 dropboxClient = authenticate();
             List<Metadata> foldersInPhotos = dropboxClient.files().listFolder(File.separator.concat("Photos")).getEntries();
             ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
             for (Metadata folder : foldersInPhotos) {
                 Task task = new Task(destinationLocation, folder, authenticate());
                 threadPoolExecutor.execute(task);
             }
-        } catch (ListFolderErrorException e) {
-            e.printStackTrace();
-        } catch (DbxException e) {
-            e.printStackTrace();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -55,5 +49,4 @@ public class FileTransfer {
         }
         return new DbxClientV2(config, ACCESS_TOKEN);
     }
-
 }

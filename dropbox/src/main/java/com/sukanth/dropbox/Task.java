@@ -14,11 +14,14 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * @author Sukanth Gunda
+ */
 public class Task implements Runnable {
 
-    String destinationLocation = null;
-    Metadata folder = null;
-    DbxClientV2 dropboxClient = null;
+    String destinationLocation;
+    Metadata folder;
+    DbxClientV2 dropboxClient;
 
 
     public Task(String destinationLocation, Metadata folder, DbxClientV2 dropboxClient) {
@@ -67,12 +70,11 @@ public class Task implements Runnable {
      *
      * @param sourcePath
      * @return files
-     * @throws Exception
      */
-    public List<File> listFiles(String sourcePath) throws Exception {
+    public List<File> listFiles(String sourcePath) {
         List<File> files = null;
         try {
-            files = new ArrayList<File>();
+            files = new ArrayList<>();
             ListFolderResult listFolderResult = dropboxClient.files().listFolder(sourcePath);
             for (Metadata metadata : listFolderResult.getEntries()) {
                 String filePath = metadata.getPathLower();
@@ -105,10 +107,6 @@ public class Task implements Runnable {
 
 
         //Add a progress Listener
-        dl.download(new ProgressOutputStream(fOut, dl.getResult().getSize(), (long completed, long totalSize) -> {
-
-            System.out.println((completed * 100) / totalSize + " %");
-
-        }));
+        dl.download(new ProgressOutputStream(fOut, dl.getResult().getSize(), (long completed, long totalSize) -> System.out.println((completed * 100) / totalSize + " %")));
     }
 }
