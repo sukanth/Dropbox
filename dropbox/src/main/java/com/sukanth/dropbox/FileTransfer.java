@@ -21,7 +21,7 @@ public class FileTransfer {
         try {
             DbxClientV2 dropboxClient = authenticate();
             List<Metadata> foldersInPhotos = dropboxClient.files().listFolder(File.separator.concat("Photos")).getEntries();
-            ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(10);
+            ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(50);
             for (Metadata folder : foldersInPhotos) {
                 Task task = new Task(destinationLocation, folder, authenticate());
                 threadPoolExecutor.execute(task);
