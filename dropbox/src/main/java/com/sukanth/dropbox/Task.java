@@ -53,12 +53,6 @@ public class Task implements Runnable {
                     System.out.println("Can not create folder in path :  " + destPath.getAbsolutePath());
                 }
             }
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (DownloadErrorException e) {
-            e.printStackTrace();
-        } catch (DbxException e) {
-            e.printStackTrace();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -96,17 +90,18 @@ public class Task implements Runnable {
      * @throws DownloadErrorException
      * @throws IOException
      */
-    public void downloadFile(DbxClientV2 client, String dropBoxFilePath, String localFileAbsolutePath) throws DownloadErrorException, DbxException, IOException {
-
-        //Create DbxDownloader
-        DbxDownloader<FileMetadata> dl = client.files().download(dropBoxFilePath);
-
-        //FileOutputStream
-        FileOutputStream fOut = new FileOutputStream(localFileAbsolutePath);
-        System.out.println("Downloading .... " + dropBoxFilePath);
-
-
-        //Add a progress Listener
-        dl.download(new ProgressOutputStream(fOut, dl.getResult().getSize(), (long completed, long totalSize) -> System.out.println((completed * 100) / totalSize + " %")));
+    public void downloadFile(DbxClientV2 client, String dropBoxFilePath, String localFileAbsolutePath) {
+        try {
+            //Create DbxDownloader
+            DbxDownloader<FileMetadata> dl = client.files().download(dropBoxFilePath);
+            //FileOutputStream
+            FileOutputStream fOut = new FileOutputStream(localFileAbsolutePath);
+            System.out.println("Downloading .... " + dropBoxFilePath);
+            //Add a progress Listener
+            dl.download(new ProgressOutputStream(fOut, dl.getResult().getSize(), (long completed, long totalSize) -> System.out.println((completed * 100) / totalSize + " %")));
+            fOut.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
