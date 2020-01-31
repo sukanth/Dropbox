@@ -18,8 +18,10 @@ public class DropBoxFileTransfer {
         String sourceLocation = "/Photos";
         ListFolderBuilder listFolderBuilder = null;
         ListFolderResult result = null;
+        String ACCESS_TOKEN = "replace this with your access token";
+        String CLIENT_IDENTIFIER = "replace this with you client identifier";
         try {
-            DbxClientV2 dropboxClient = authenticate();
+            DbxClientV2 dropboxClient = authenticate(ACCESS_TOKEN,CLIENT_IDENTIFIER);
             listFolderBuilder = dropboxClient.files().listFolderBuilder(sourceLocation);
             result = listFolderBuilder.withIncludeDeleted(false).withRecursive(true).withIncludeMediaInfo(false).start();
             createFolders(result, dropboxClient, destinationLocation);
@@ -80,12 +82,11 @@ public class DropBoxFileTransfer {
      *
      * @return {@link DbxClientV2}
      */
-    public static DbxClientV2 authenticate() {
-        String ACCESS_TOKEN = null;
+    public static DbxClientV2 authenticate(String ACCESS_TOKEN,String CLIENT_IDENTIFIER) {
         DbxRequestConfig config = null;
         try {
-            ACCESS_TOKEN = "0sswgo6tiyQAAAAAAAEvJ3Qe11tAktcr_rWxu0RQu_0ndqM4hu5qsxFNqSstKikE";
-            config = DbxRequestConfig.newBuilder("sukanth").build();
+            ACCESS_TOKEN = ACCESS_TOKEN.trim();
+            config = DbxRequestConfig.newBuilder(CLIENT_IDENTIFIER.trim()).build();
         } catch (Exception e) {
             e.printStackTrace();
         }
