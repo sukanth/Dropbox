@@ -3,6 +3,7 @@ package com.sukanth.dropbox;
 import com.dropbox.core.DbxDownloader;
 import com.dropbox.core.v2.DbxClientV2;
 import com.dropbox.core.v2.files.FileMetadata;
+import com.dropbox.core.v2.files.FolderMetadata;
 import com.dropbox.core.v2.files.ListFolderResult;
 import com.dropbox.core.v2.files.Metadata;
 
@@ -29,8 +30,9 @@ public class DropBoxFileTransferJob implements Runnable {
                 if (!file.exists()) {
                     downloadFile(dropBoxClient, entry.getPathLower(), destinationFolderPath);
                 }
-            } else {
+            } else if (entry instanceof FolderMetadata) {
 
+            } else {
                 System.out.println("Neither a file not a folder" + entry.getPathLower());
             }
         }
@@ -52,6 +54,7 @@ public class DropBoxFileTransferJob implements Runnable {
             System.out.println("Downloading .... " + dropBoxFilePath);
             //Add a progress Listener
             dl.download(new ProgressOutputStream(fOut, dl.getResult().getSize(), (long completed, long totalSize) -> System.out.println((completed * 100) / totalSize + " %")));
+            fOut.flush();
             fOut.close();
         } catch (Exception e) {
             e.printStackTrace();
