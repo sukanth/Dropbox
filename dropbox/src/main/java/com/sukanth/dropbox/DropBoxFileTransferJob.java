@@ -6,11 +6,13 @@ import com.dropbox.core.v2.files.FileMetadata;
 import com.dropbox.core.v2.files.FolderMetadata;
 import com.dropbox.core.v2.files.ListFolderResult;
 import com.dropbox.core.v2.files.Metadata;
+import org.apache.log4j.Logger;
 
 import java.io.File;
 import java.io.FileOutputStream;
 
 public class DropBoxFileTransferJob implements Runnable {
+    final static Logger LOG = Logger.getLogger(DropBoxFileTransferJob.class);
     String destinationLocation;
     ListFolderResult result;
     DbxClientV2 dropBoxClient;
@@ -23,28 +25,39 @@ public class DropBoxFileTransferJob implements Runnable {
 
     @Override
     public void run() {
+        LOG.info("Processing Thread");
+        int fileCount = 0;
+        int folderCount = 0;
         for (Metadata entry : result.getEntries()) {
             if (entry instanceof FileMetadata) {
-                String destinationFolderPath = destinationLocation.concat(entry.getPathDisplay());
-                File file = new File(destinationFolderPath);
+                fileCount = fileCount + 1;
+                String destinationFilePath = destinationLocation.concat(entry.getPathDisplay());
+                File file = new File(destinationFilePath);
                 if (!file.exists()) {
-                    downloadFile(dropBoxClient, entry.getPathLower(), destinationFolderPath);
+                    downloadFile(dropBoxClient, entry.getPathLower(), destinationFilePath);
+                }else{
+                    LOG.info("File skipped (Already Exists) "+destinationFilePath);
                 }
             } else if (entry instanceof FolderMetadata) {
-                for (Metadata metadataEntry : result.getEntries()) {
-                    if (metadataEntry instanceof FolderMetadata) {
-                        File file = new File(metadataEntry.getPathLower());
-                        String destinationFolderPath = destinationLocation.concat(metadataEntry.getPathDisplay());
-                        File destPath = new File(destinationFolderPath);
-                        if (!destPath.exists()) {
-                            destPath.mkdirs();
+                folderCount = folderCount + 1;
+                if (entry instanceof FolderMetadata) {
+                    File file = new File(entry.getPathLower());
+                    String destinationFolderPath = destinationLocation.concat(entry.getPathDisplay());
+                    File destPath = new File(destinationFolderPath);
+                    if (!destPath.exists()) {
+                        boolean mkdirs = destPath.mkdirs();
+                        if (mkdirs) {
+                            LOG.info("Created Folder in Path " + destPath.getAbsolutePath());
+                        } else {
+                            LOG.info("Folder Path Already Exists " + destPath.getAbsolutePath());
                         }
                     }
                 }
             } else {
-                System.out.println("Neither a file not a folder" + entry.getPathLower());
+                LOG.info("Neither a file not a folder" + entry.getPathLower());
             }
         }
+        LOG.info("Processed " + fileCount + " Files" + " and " + folderCount + " folders");
     }
 
     /**
@@ -60,13 +73,14 @@ public class DropBoxFileTransferJob implements Runnable {
             DbxDownloader<FileMetadata> dl = client.files().download(dropBoxFilePath);
             //FileOutputStream
             FileOutputStream fOut = new FileOutputStream(localFileAbsolutePath);
-            System.out.println("Downloading .... " + dropBoxFilePath);
+            LOG.info("***Downloading File from.... " + dropBoxFilePath+ " To "+localFileAbsolutePath+" ***");
             //Add a progress Listener
-            dl.download(new ProgressOutputStream(fOut, dl.getResult().getSize(), (long completed, long totalSize) -> System.out.println((completed * 100) / totalSize + " %")));
+            dl.download(fOut);
+            //dl.download(new ProgressOutputStream(fOut, dl.getResult().getSize(), (long completed, long totalSize) -> System.out.println((completed * 100) / totalSize + " %")));
             fOut.flush();
             fOut.close();
         } catch (Exception e) {
-            e.printStackTrace();
+           LOG.error(e.getStackTrace());
         }
     }
 }
