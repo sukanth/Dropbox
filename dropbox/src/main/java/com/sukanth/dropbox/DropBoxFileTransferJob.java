@@ -36,7 +36,7 @@ public class DropBoxFileTransferJob implements Runnable {
                 if (!file.exists()) {
                     downloadFile(dropBoxClient, entry.getPathLower(), destinationFilePath);
                 }else{
-                    LOG.info("File skipped (Already Exists) "+destinationFilePath);
+                    LOG.info("File Exists, skipped file "+destinationFilePath);
                 }
             } else if (entry instanceof FolderMetadata) {
                 folderCount = folderCount + 1;
@@ -47,9 +47,9 @@ public class DropBoxFileTransferJob implements Runnable {
                     if (!destPath.exists()) {
                         boolean mkdirs = destPath.mkdirs();
                         if (mkdirs) {
-                            LOG.info("Created Folder in Path " + destPath.getAbsolutePath());
+                            LOG.info("Created Folder " + destPath.getAbsolutePath());
                         } else {
-                            LOG.info("Folder Path Already Exists " + destPath.getAbsolutePath());
+                            LOG.info("Folder Exists, skipping folder creation " + destPath.getAbsolutePath());
                         }
                     }
                 }
