@@ -3,7 +3,6 @@ package com.sukanth.dropbox;
 import com.dropbox.core.DbxDownloader;
 import com.dropbox.core.v2.DbxClientV2;
 import com.dropbox.core.v2.files.FileMetadata;
-import com.dropbox.core.v2.files.FolderMetadata;
 import com.dropbox.core.v2.files.ListFolderResult;
 import com.dropbox.core.v2.files.Metadata;
 
@@ -23,21 +22,8 @@ public class DropBoxFileTransferJob implements Runnable {
 
     @Override
     public void run() {
-        int folderCount=0;
-        int filecount=0;
         for (Metadata entry : result.getEntries()) {
-            if (entry instanceof FolderMetadata) {
-                folderCount = folderCount + 1;
-                System.out.println("folder: " + entry.getPathLower() + "********FolderCount" + folderCount);
-
-                File file = new File(entry.getPathLower());
-                String destinationFolderPath = destinationLocation.concat(entry.getPathDisplay());
-                File destPath = new File(destinationFolderPath);
-                if (!destPath.exists()) {
-                    destPath.mkdir();
-                }
-            } else if (entry instanceof FileMetadata) {
-                filecount = filecount + 1;
+            if (entry instanceof FileMetadata) {
                 String destinationFolderPath = destinationLocation.concat(entry.getPathDisplay());
                 File file = new File(destinationFolderPath);
                 if (!file.exists()) {

@@ -3,10 +3,7 @@ package com.sukanth.dropbox;
 import com.dropbox.core.DbxException;
 import com.dropbox.core.DbxRequestConfig;
 import com.dropbox.core.v2.DbxClientV2;
-import com.dropbox.core.v2.files.ListFolderBuilder;
-import com.dropbox.core.v2.files.ListFolderContinueErrorException;
-import com.dropbox.core.v2.files.ListFolderErrorException;
-import com.dropbox.core.v2.files.ListFolderResult;
+import com.dropbox.core.v2.files.*;
 
 import java.io.File;
 import java.util.Objects;
@@ -15,29 +12,29 @@ import java.util.concurrent.ThreadPoolExecutor;
 
 public class DropBoxFileTransfer {
     private static final String usrHome = System.getProperty("user.home");
+
     public static void main(String[] args) {
-        String destinationLocation = usrHome.concat(File.separator.concat("Desktop/Test"));
+        String destinationLocation = "/Volumes/TimeCapsule/Sukanth/Photos";//usrHome.concat(File.separator.concat("Desktop/Test"));
         String sourceLocation = "/Photos";
         ListFolderBuilder listFolderBuilder = null;
         ListFolderResult result = null;
-        try{
+        try {
             DbxClientV2 dropboxClient = authenticate();
             listFolderBuilder = dropboxClient.files().listFolderBuilder(sourceLocation);
             result = listFolderBuilder.withIncludeDeleted(false).withRecursive(true).withIncludeMediaInfo(false).start();
-            ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(50);
-            while(true){
-                if(Objects.nonNull(result)){
-                    if(result.getHasMore()){
-                        DropBoxFileTransferJob dropBoxFileTransferJob = new DropBoxFileTransferJob(destinationLocation,result,dropboxClient);
+            createFolders(result, dropboxClient, destinationLocation);
+            ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(80);
+            while (true) {
+                if (Objects.nonNull(result)) {
+                        DropBoxFileTransferJob dropBoxFileTransferJob = new DropBoxFileTransferJob(destinationLocation, result, dropboxClient);
                         threadPoolExecutor.execute(dropBoxFileTransferJob);
-                    }else{
+                     if(!result.getHasMore()) {
                         break;
                     }
                 }
                 result = dropboxClient.files().listFolderContinue(result.getCursor());
             }
-        }
-        catch (ListFolderContinueErrorException e) {
+        } catch (ListFolderContinueErrorException e) {
             e.printStackTrace();
         } catch (ListFolderErrorException e) {
             e.printStackTrace();
@@ -45,6 +42,38 @@ public class DropBoxFileTransfer {
             e.printStackTrace();
         }
     }
+
+    /**
+     *
+     * @param result
+     * @param dropboxClient
+     * @param destinationLocation
+     */
+    private static void createFolders(ListFolderResult result, DbxClientV2 dropboxClient, String destinationLocation) {
+        try {
+            while (true) {
+                if (Objects.nonNull(result)) {
+                        for (Metadata metadataEntry : result.getEntries()) {
+                            if (metadataEntry instanceof FolderMetadata) {
+                                File file = new File(metadataEntry.getPathLower());
+                                String destinationFolderPath = destinationLocation.concat(metadataEntry.getPathDisplay());
+                                File destPath = new File(destinationFolderPath);
+                                if (!destPath.exists()) {
+                                    destPath.mkdirs();
+                                }
+                            }
+                        }
+                     if(!result.getHasMore()) {
+                        break;
+                    }
+                }
+                result = dropboxClient.files().listFolderContinue(result.getCursor());
+            }
+        } catch (Exception e) {
+
+        }
+    }
+
 
     /**
      * Method to authenticate to Dropbox.
