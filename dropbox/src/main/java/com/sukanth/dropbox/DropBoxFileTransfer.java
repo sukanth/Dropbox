@@ -14,17 +14,16 @@ public class DropBoxFileTransfer {
     private static final String usrHome = System.getProperty("user.home");
 
     public static void main(String[] args) {
-        String destinationLocation = "/Volumes/TimeCapsule/Sukanth/Photos";//usrHome.concat(File.separator.concat("Desktop/Test"));
+        String destinationLocation = usrHome.concat(File.separator.concat("Desktop/Test"));
         String sourceLocation = "/Photos";
         ListFolderBuilder listFolderBuilder = null;
         ListFolderResult result = null;
-        String ACCESS_TOKEN = "replace this with your access token";
-        String CLIENT_IDENTIFIER = "replace this with you client identifier";
+        String ACCESS_TOKEN = "ACCESS_TOKEN";
+        String CLIENT_IDENTIFIER = "CLIENT_IDENTIFIER";
         try {
             DbxClientV2 dropboxClient = authenticate(ACCESS_TOKEN,CLIENT_IDENTIFIER);
             listFolderBuilder = dropboxClient.files().listFolderBuilder(sourceLocation);
             result = listFolderBuilder.withIncludeDeleted(false).withRecursive(true).withIncludeMediaInfo(false).start();
-            createFolders(result, dropboxClient, destinationLocation);
             ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(80);
             while (true) {
                 if (Objects.nonNull(result)) {
@@ -44,38 +43,6 @@ public class DropBoxFileTransfer {
             e.printStackTrace();
         }
     }
-
-    /**
-     *
-     * @param result
-     * @param dropboxClient
-     * @param destinationLocation
-     */
-    private static void createFolders(ListFolderResult result, DbxClientV2 dropboxClient, String destinationLocation) {
-        try {
-            while (true) {
-                if (Objects.nonNull(result)) {
-                        for (Metadata metadataEntry : result.getEntries()) {
-                            if (metadataEntry instanceof FolderMetadata) {
-                                File file = new File(metadataEntry.getPathLower());
-                                String destinationFolderPath = destinationLocation.concat(metadataEntry.getPathDisplay());
-                                File destPath = new File(destinationFolderPath);
-                                if (!destPath.exists()) {
-                                    destPath.mkdirs();
-                                }
-                            }
-                        }
-                     if(!result.getHasMore()) {
-                        break;
-                    }
-                }
-                result = dropboxClient.files().listFolderContinue(result.getCursor());
-            }
-        } catch (Exception e) {
-
-        }
-    }
-
 
     /**
      * Method to authenticate to Dropbox.

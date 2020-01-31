@@ -31,7 +31,16 @@ public class DropBoxFileTransferJob implements Runnable {
                     downloadFile(dropBoxClient, entry.getPathLower(), destinationFolderPath);
                 }
             } else if (entry instanceof FolderMetadata) {
-
+                for (Metadata metadataEntry : result.getEntries()) {
+                    if (metadataEntry instanceof FolderMetadata) {
+                        File file = new File(metadataEntry.getPathLower());
+                        String destinationFolderPath = destinationLocation.concat(metadataEntry.getPathDisplay());
+                        File destPath = new File(destinationFolderPath);
+                        if (!destPath.exists()) {
+                            destPath.mkdirs();
+                        }
+                    }
+                }
             } else {
                 System.out.println("Neither a file not a folder" + entry.getPathLower());
             }
