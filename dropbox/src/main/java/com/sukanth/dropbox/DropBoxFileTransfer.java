@@ -17,12 +17,12 @@ public class DropBoxFileTransfer {
     private static final String usrHome = System.getProperty("user.home");
     public static void main(String[] args) {
         String destinationLocation = usrHome.concat(File.separator.concat("Desktop/Test"));
-        String folderToTransfer = "/Photos";
+        String sourceLocation = "/Photos";
         ListFolderBuilder listFolderBuilder = null;
         ListFolderResult result = null;
         try{
             DbxClientV2 dropboxClient = authenticate();
-            listFolderBuilder = dropboxClient.files().listFolderBuilder(folderToTransfer);
+            listFolderBuilder = dropboxClient.files().listFolderBuilder(sourceLocation);
             result = listFolderBuilder.withIncludeDeleted(false).withRecursive(true).withIncludeMediaInfo(false).start();
             ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(50);
             while(true){
