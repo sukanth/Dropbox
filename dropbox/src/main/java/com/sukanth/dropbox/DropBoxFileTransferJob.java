@@ -75,7 +75,6 @@ public class DropBoxFileTransferJob implements Runnable {
             LOG.info("*** Downloading File from.... " + dropBoxFilePath + " ---To--- " + localFileAbsolutePath + " ***");
             //Add a progress Listener
             dl.download(fOut);
-            //dl.download(new ProgressOutputStream(fOut, dl.getResult().getSize(), (long completed, long totalSize) -> System.out.println((completed * 100) / totalSize + " %")));
             fOut.flush();
             fOut.close();
         } catch (Exception e) {
