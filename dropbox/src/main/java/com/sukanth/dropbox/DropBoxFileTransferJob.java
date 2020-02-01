@@ -13,9 +13,9 @@ import java.io.FileOutputStream;
 
 public class DropBoxFileTransferJob implements Runnable {
     final static Logger LOG = Logger.getLogger(DropBoxFileTransferJob.class);
-    String destinationLocation;
-    ListFolderResult result;
-    DbxClientV2 dropBoxClient;
+    final String destinationLocation;
+    final ListFolderResult result;
+    final DbxClientV2 dropBoxClient;
 
     public DropBoxFileTransferJob(String destinationLocation, ListFolderResult result, DbxClientV2 dropBoxClient) {
         this.destinationLocation = destinationLocation;
@@ -25,39 +25,38 @@ public class DropBoxFileTransferJob implements Runnable {
 
     @Override
     public void run() {
-        LOG.info("Processing Thread");
-        int fileCount = 0;
-        int folderCount = 0;
-        for (Metadata entry : result.getEntries()) {
-            if (entry instanceof FileMetadata) {
-                fileCount = fileCount + 1;
-                String destinationFilePath = destinationLocation.concat(entry.getPathDisplay());
-                File file = new File(destinationFilePath);
-                if (!file.exists()) {
-                    downloadFile(dropBoxClient, entry.getPathLower(), destinationFilePath);
-                }else{
-                    LOG.info("File Exists, skipped file "+destinationFilePath);
-                }
-            } else if (entry instanceof FolderMetadata) {
-                folderCount = folderCount + 1;
-                if (entry instanceof FolderMetadata) {
-                    File file = new File(entry.getPathLower());
-                    String destinationFolderPath = destinationLocation.concat(entry.getPathDisplay());
-                    File destPath = new File(destinationFolderPath);
-                    if (!destPath.exists()) {
-                        boolean mkdirs = destPath.mkdirs();
-                        if (mkdirs) {
-                            LOG.info("Created Folder " + destPath.getAbsolutePath());
+        try {
+            LOG.info("Processing Thread Entries " + result.getEntries().size());
+            for (Metadata entry : result.getEntries()) {
+                if (entry instanceof FileMetadata) {
+                    String destinationFilePath = destinationLocation.concat(entry.getPathDisplay());
+                    File file = new File(destinationFilePath);
+                    if (!file.exists()) {
+                        downloadFile(dropBoxClient, entry.getPathLower(), destinationFilePath);
+                    } else {
+                        LOG.info("File Exists, skipped file " + destinationFilePath);
+                    }
+                } else if (entry instanceof FolderMetadata) {
+                        File file = new File(entry.getPathLower());
+                        String destinationFolderPath = destinationLocation.concat(entry.getPathDisplay());
+                        File destPath = new File(destinationFolderPath);
+                        if (!destPath.exists()) {
+                            boolean mkdirs = destPath.mkdirs();
+                            if (mkdirs) {
+                                LOG.info("Created Folder " + destPath.getAbsolutePath());
+                            } else {
+                                LOG.error("Can't create folder " + destPath.getAbsolutePath());
+                            }
                         } else {
                             LOG.info("Folder Exists, skipping folder creation " + destPath.getAbsolutePath());
                         }
-                    }
+                } else {
+                    LOG.info("Neither a file not a folder" + entry.getPathLower());
                 }
-            } else {
-                LOG.info("Neither a file not a folder" + entry.getPathLower());
             }
+        } catch (Exception e) {
+            LOG.error(e);
         }
-        LOG.info("Processed " + fileCount + " Files" + " and " + folderCount + " folders");
     }
 
     /**
@@ -73,14 +72,14 @@ public class DropBoxFileTransferJob implements Runnable {
             DbxDownloader<FileMetadata> dl = client.files().download(dropBoxFilePath);
             //FileOutputStream
             FileOutputStream fOut = new FileOutputStream(localFileAbsolutePath);
-            LOG.info("***Downloading File from.... " + dropBoxFilePath+ " To "+localFileAbsolutePath+" ***");
+            LOG.info("***Downloading File from.... " + dropBoxFilePath + " To " + localFileAbsolutePath + " ***");
             //Add a progress Listener
             dl.download(fOut);
             //dl.download(new ProgressOutputStream(fOut, dl.getResult().getSize(), (long completed, long totalSize) -> System.out.println((completed * 100) / totalSize + " %")));
             fOut.flush();
             fOut.close();
         } catch (Exception e) {
-           LOG.error(e.getStackTrace());
+            LOG.error(e);
         }
     }
 }

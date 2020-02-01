@@ -10,49 +10,55 @@ import com.dropbox.core.v2.files.ListFolderResult;
 import org.apache.log4j.Logger;
 
 import java.io.File;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 public class DropBoxFileTransfer {
     private static final String usrHome = System.getProperty("user.home");
     final static Logger LOG = Logger.getLogger(DropBoxFileTransfer.class);
-    public static void main(String[] args) {
+
+    public static void main(String[] args) throws InterruptedException {
         String destinationLocation = usrHome.concat(File.separator.concat("Desktop/Test"));
-        String sourceLocation = "/Photos";
-        LOG.info("File Transfer started from SourcePath "+sourceLocation);
+        String sourceLocation = "/My Documents";
+        LOG.info("Started transferring files in " + sourceLocation);
         ListFolderBuilder listFolderBuilder;
+        ThreadPoolExecutor threadPoolExecutor = null;
         ListFolderResult result;
         String ACCESS_TOKEN = "ACCESS_TOKEN";
         String CLIENT_IDENTIFIER = "CLIENT_IDENTIFIER";
+        LocalDateTime startTime = LocalDateTime.now();
         try {
-            LOG.info("Transfer Start Time "+ LocalDateTime.now());
-            DbxClientV2 dropboxClient = authenticate(ACCESS_TOKEN,CLIENT_IDENTIFIER);
+            LOG.info("Transfer Start Time " + startTime);
+            DbxClientV2 dropboxClient = authenticate(ACCESS_TOKEN, CLIENT_IDENTIFIER);
 
-            LOG.info("Authenticated to User "+dropboxClient.users().getCurrentAccount().getName().getDisplayName());
+            LOG.info("Authenticated to User " + dropboxClient.users().getCurrentAccount().getName().getDisplayName());
             listFolderBuilder = dropboxClient.files().listFolderBuilder(sourceLocation);
 
             result = listFolderBuilder.withIncludeDeleted(false).withRecursive(true).withIncludeMediaInfo(false).start();
-            ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(80);
-            LOG.info("Thread Pool Size "+threadPoolExecutor.getMaximumPoolSize());
+            threadPoolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(80);
+            LOG.info("Thread Pool Size " + threadPoolExecutor.getMaximumPoolSize());
             while (true) {
                 if (Objects.nonNull(result)) {
-                        DropBoxFileTransferJob dropBoxFileTransferJob = new DropBoxFileTransferJob(destinationLocation, result, dropboxClient);
-                        threadPoolExecutor.execute(dropBoxFileTransferJob);
-                     if(!result.getHasMore()) {
+                    DropBoxFileTransferJob dropBoxFileTransferJob = new DropBoxFileTransferJob(destinationLocation, result, dropboxClient);
+                    threadPoolExecutor.execute(dropBoxFileTransferJob);
+                    if (!result.getHasMore()) {
                         break;
                     }
                 }
                 result = dropboxClient.files().listFolderContinue(result.getCursor());
             }
-            LOG.info("Transfer End Time "+LocalDateTime.now());
-        } catch (ListFolderContinueErrorException e) {
-            LOG.error(e.getStackTrace());
-        } catch (ListFolderErrorException e) {
-            LOG.error(e.getStackTrace());
         } catch (DbxException e) {
-            LOG.error(e.getStackTrace());
+            LOG.error(e);
+        } finally {
+            Objects.requireNonNull(threadPoolExecutor).shutdown();
+            if (threadPoolExecutor.awaitTermination(5, TimeUnit.MINUTES)) {
+                Duration duration = Duration.between(startTime, LocalDateTime.now());
+                LOG.info("Transfer Completed in " + duration.toHours() + " Hours " + duration.toMinutes() + " Minutes " + duration.toMillis() + " MilliSeconds");
+            }
         }
     }
 
@@ -61,7 +67,7 @@ public class DropBoxFileTransfer {
      *
      * @return {@link DbxClientV2}
      */
-    public static DbxClientV2 authenticate(String ACCESS_TOKEN,String CLIENT_IDENTIFIER) {
+    public static DbxClientV2 authenticate(String ACCESS_TOKEN, String CLIENT_IDENTIFIER) {
         DbxRequestConfig config = null;
         try {
             ACCESS_TOKEN = ACCESS_TOKEN.trim();
