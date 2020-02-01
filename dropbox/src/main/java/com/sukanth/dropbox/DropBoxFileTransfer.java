@@ -12,6 +12,8 @@ import org.apache.log4j.Logger;
 import java.io.File;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -55,7 +57,7 @@ public class DropBoxFileTransfer {
             LOG.error(e);
         } finally {
             Objects.requireNonNull(threadPoolExecutor).shutdown();
-            if (threadPoolExecutor.awaitTermination(5, TimeUnit.MINUTES)) {
+            if (threadPoolExecutor.awaitTermination(60, TimeUnit.DAYS)) {
                 Duration duration = Duration.between(startTime, LocalDateTime.now());
                 LOG.info("Transfer Completed in " + duration.toHours() + " Hours " + duration.toMinutes() + " Minutes " + duration.toMillis() + " MilliSeconds");
             }
