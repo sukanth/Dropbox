@@ -69,9 +69,7 @@ public class DropBoxFileTransfer {
                     }
                 }
                 if (finalFailedList.size() > 0) {
-                    for (String finalTry : finalFailedList) {
-                        LOG.error("NOT PROCESSED FILE " + finalTry);
-                    }
+                    finalFailedList.stream().map(finalTry -> "NOT PROCESSED FILE " + finalTry).forEach(LOG::error);
                 }
                 Duration duration = Duration.between(startTime, LocalDateTime.now());
                 LOG.info("Transfer Completed in " + duration.toHours() + " Hours " + duration.toMinutes() + " Minutes " + duration.toMillis() + " MilliSeconds");

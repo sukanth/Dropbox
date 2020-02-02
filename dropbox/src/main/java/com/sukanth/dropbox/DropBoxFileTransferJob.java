@@ -6,7 +6,6 @@ import com.dropbox.core.v2.DbxClientV2;
 import com.dropbox.core.v2.files.FileMetadata;
 import com.dropbox.core.v2.files.FolderMetadata;
 import com.dropbox.core.v2.files.ListFolderResult;
-import com.dropbox.core.v2.files.Metadata;
 import org.apache.log4j.Logger;
 
 import java.io.File;
@@ -28,7 +27,7 @@ public class DropBoxFileTransferJob implements Runnable {
     public void run() {
         try {
             LOG.info("Processing Thread Entries " + result.getEntries().size());
-            for (Metadata entry : result.getEntries()) {
+            result.getEntries().forEach(entry -> {
                 if (entry instanceof FileMetadata) {
                     String destinationFilePath = destinationLocation.concat(entry.getPathDisplay());
                     File file = new File(destinationFilePath);
@@ -54,7 +53,7 @@ public class DropBoxFileTransferJob implements Runnable {
                 } else {
                     LOG.error("Neither a file not a folder" + entry.getPathLower());
                 }
-            }
+            });
         } catch (Exception e) {
             LOG.error(e);
         }
