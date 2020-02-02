@@ -4,8 +4,6 @@ import com.dropbox.core.DbxException;
 import com.dropbox.core.DbxRequestConfig;
 import com.dropbox.core.v2.DbxClientV2;
 import com.dropbox.core.v2.files.ListFolderBuilder;
-import com.dropbox.core.v2.files.ListFolderContinueErrorException;
-import com.dropbox.core.v2.files.ListFolderErrorException;
 import com.dropbox.core.v2.files.ListFolderResult;
 import org.apache.log4j.Logger;
 
@@ -22,6 +20,8 @@ import java.util.concurrent.TimeUnit;
 public class DropBoxFileTransfer {
     private static final String usrHome = System.getProperty("user.home");
     final static Logger LOG = Logger.getLogger(DropBoxFileTransfer.class);
+    public static final List<String> failed = new ArrayList<>();
+    public static final List<String> finalFailedList = new ArrayList<>();
 
     public static void main(String[] args) throws InterruptedException {
         String destinationLocation = usrHome.concat(File.separator.concat("Desktop/Test"));
@@ -33,9 +33,11 @@ public class DropBoxFileTransfer {
         String ACCESS_TOKEN = "ACCESS_TOKEN";
         String CLIENT_IDENTIFIER = "CLIENT_IDENTIFIER";
         LocalDateTime startTime = LocalDateTime.now();
+        DropBoxFileTransferJob dropBoxFileTransferJob = null;
+        DbxClientV2 dropboxClient = null;
         try {
             LOG.info("Transfer Start Time " + startTime);
-            DbxClientV2 dropboxClient = authenticate(ACCESS_TOKEN, CLIENT_IDENTIFIER);
+            dropboxClient = authenticate(ACCESS_TOKEN, CLIENT_IDENTIFIER);
 
             LOG.info("Authenticated to User " + dropboxClient.users().getCurrentAccount().getName().getDisplayName());
             listFolderBuilder = dropboxClient.files().listFolderBuilder(sourceLocation);
@@ -45,7 +47,7 @@ public class DropBoxFileTransfer {
             LOG.info("Thread Pool Size " + threadPoolExecutor.getMaximumPoolSize());
             while (true) {
                 if (Objects.nonNull(result)) {
-                    DropBoxFileTransferJob dropBoxFileTransferJob = new DropBoxFileTransferJob(destinationLocation, result, dropboxClient);
+                    dropBoxFileTransferJob = new DropBoxFileTransferJob(destinationLocation, result, dropboxClient);
                     threadPoolExecutor.execute(dropBoxFileTransferJob);
                     if (!result.getHasMore()) {
                         break;
@@ -58,6 +60,19 @@ public class DropBoxFileTransfer {
         } finally {
             Objects.requireNonNull(threadPoolExecutor).shutdown();
             if (threadPoolExecutor.awaitTermination(60, TimeUnit.DAYS)) {
+                if (failed.size() > 0) {
+                    for (String failedFile : failed) {
+                        LOG.error("RETRYING FAILED TRANSFER " + failedFile);
+                        if (Objects.nonNull(dropBoxFileTransferJob)) {
+                            dropBoxFileTransferJob.downloadFile(dropboxClient, failedFile, destinationLocation.concat(failedFile), true);
+                        }
+                    }
+                }
+                if (finalFailedList.size() > 0) {
+                    for (String finalTry : finalFailedList) {
+                        LOG.error("NOT PROCESSED FILE " + finalTry);
+                    }
+                }
                 Duration duration = Duration.between(startTime, LocalDateTime.now());
                 LOG.info("Transfer Completed in " + duration.toHours() + " Hours " + duration.toMinutes() + " Minutes " + duration.toMillis() + " MilliSeconds");
             }

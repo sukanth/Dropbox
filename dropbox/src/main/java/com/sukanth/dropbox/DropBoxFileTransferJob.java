@@ -11,14 +11,12 @@ import org.apache.log4j.Logger;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.util.*;
 
 public class DropBoxFileTransferJob implements Runnable {
     final static Logger LOG = Logger.getLogger(DropBoxFileTransferJob.class);
     final String destinationLocation;
     final ListFolderResult result;
     final DbxClientV2 dropBoxClient;
-    List<String> failedTransfers = new ArrayList<>();
 
     public DropBoxFileTransferJob(String destinationLocation, ListFolderResult result, DbxClientV2 dropBoxClient) {
         this.destinationLocation = destinationLocation;
@@ -35,7 +33,7 @@ public class DropBoxFileTransferJob implements Runnable {
                     String destinationFilePath = destinationLocation.concat(entry.getPathDisplay());
                     File file = new File(destinationFilePath);
                     if (!file.exists()) {
-                        downloadFile(dropBoxClient, entry.getPathLower(), destinationFilePath);
+                        downloadFile(dropBoxClient, entry.getPathLower(), destinationFilePath, false);
                     } else {
                         LOG.info("File Exists, skipped file " + destinationFilePath);
                     }
@@ -69,8 +67,9 @@ public class DropBoxFileTransferJob implements Runnable {
      * @param dropBoxFilePath       The file path on the Dropbox cloud server -> [/foldername/something.txt]
      * @param localFileAbsolutePath The absolute file path of the File on the Local File System
      */
-    public void downloadFile(DbxClientV2 client, String dropBoxFilePath, String localFileAbsolutePath) {
+    public void downloadFile(DbxClientV2 client, String dropBoxFilePath, String localFileAbsolutePath, boolean retry) {
         try {
+            //TODO:If retry check if the path exists else create the path
             //Create DbxDownloader
             DbxDownloader<FileMetadata> dl = client.files().download(dropBoxFilePath);
             //FileOutputStream
@@ -82,15 +81,21 @@ public class DropBoxFileTransferJob implements Runnable {
         } catch (RateLimitException e) {
             try {
                 LOG.info("Waiting... " + e.getBackoffMillis() + " MilliSeconds for RateLimit Backoff " + dropBoxFilePath);
-                failedTransfers.add(dropBoxFilePath);
+                DropBoxFileTransfer.failed.add(dropBoxFilePath);
                 Thread.sleep(e.getBackoffMillis());
                 LOG.info("Resuming Wait..");
             } catch (InterruptedException ex) {
                 LOG.error(ex);
             }
         } catch (Exception e) {
-            LOG.error("ERROR PROCESSING : From " + dropBoxFilePath + " ...To... " + localFileAbsolutePath, e);
-            failedTransfers.add(dropBoxFilePath);
+            if (retry) {
+                LOG.error("ERROR PROCESSING RETRY : From " + dropBoxFilePath + " ...To... " + localFileAbsolutePath, e);
+            }
+            if (!retry) {
+                DropBoxFileTransfer.failed.add(dropBoxFilePath);
+            } else {
+                DropBoxFileTransfer.finalFailedList.add(dropBoxFilePath);
+            }
         }
     }
 }
