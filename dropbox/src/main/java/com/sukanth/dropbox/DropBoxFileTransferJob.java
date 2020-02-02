@@ -11,6 +11,10 @@ import org.apache.log4j.Logger;
 import java.io.File;
 import java.io.FileOutputStream;
 
+/**
+ * @author sukanthgunda
+ * @apiNote Thread to copy files from dropbox to desired location.
+ */
 public class DropBoxFileTransferJob implements Runnable {
     final static Logger LOG = Logger.getLogger(DropBoxFileTransferJob.class);
     final String destinationLocation;
