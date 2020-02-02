@@ -65,7 +65,7 @@ public class DropBoxFileTransfer {
             if (threadPoolExecutor.awaitTermination(60, TimeUnit.DAYS)) {
                 if (failed.size() > 0) {
                     for (String failedFile : failed) {
-                        LOG.error("RETRYING FAILED TRANSFER " + failedFile);
+                        LOG.warn("RETRYING FAILED TRANSFER " + failedFile);
                         if (Objects.nonNull(dropBoxFileTransferJob)) {
                             dropBoxFileTransferJob.downloadFile(dropboxClient, failedFile, destinationLocation.concat(failedFile), true);
                         }
