@@ -85,7 +85,7 @@ public class DropBoxFileTransfer {
                    }
                    Duration duration = Duration.between(startTime, LocalDateTime.now());
                    LOG.info("Transfer Completed in " + duration.toHours() + " Hours/ " + duration.toMinutes() + " Minutes/ " + duration.toMillis() + " MilliSeconds");
-                   LOG.info("Processed "+(noOfFiles.size() - finalFailedList.size())+" Files");
+                   LOG.info((noOfFiles.size() - finalFailedList.size())+" Files Processed "+finalFailedList.size()+" Files Failed");
                }
            }
         }
