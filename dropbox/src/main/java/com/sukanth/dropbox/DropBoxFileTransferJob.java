@@ -33,26 +33,23 @@ public class DropBoxFileTransferJob implements Runnable {
             LOG.info("Processing Thread Entries " + result.getEntries().size());
             result.getEntries().forEach(entry -> {
                 if (entry instanceof FileMetadata) {
-                    String destinationFilePath = destinationLocation.concat(entry.getPathDisplay());
-                    File file = new File(destinationFilePath);
-                    if (!file.exists()) {
-                        downloadFile(dropBoxClient, entry.getPathLower(), destinationFilePath, false);
+                    File destinationFilePath = new File(destinationLocation.concat(entry.getPathDisplay()));
+                    if (!destinationFilePath.exists()) {
+                        downloadFile(dropBoxClient, entry.getPathLower(), destinationFilePath.getAbsolutePath(), false);
                     } else {
-                        LOG.info("File Exists, skipped file " + destinationFilePath);
+                        LOG.info("File Exists, skipped file " + destinationFilePath.getAbsolutePath());
                     }
                 } else if (entry instanceof FolderMetadata) {
-                    File file = new File(entry.getPathLower());
-                    String destinationFolderPath = destinationLocation.concat(entry.getPathDisplay());
-                    File destPath = new File(destinationFolderPath);
-                    if (!destPath.exists()) {
-                        boolean mkdirs = destPath.mkdirs();
+                    File destFolderPath = new File(destinationLocation.concat(entry.getPathDisplay()));
+                    if (!destFolderPath.exists()) {
+                        boolean mkdirs = destFolderPath.mkdirs();
                         if (mkdirs) {
-                            LOG.info("Created Folder " + destPath.getAbsolutePath());
+                            LOG.info("Created Folder " + destFolderPath.getAbsolutePath());
                         } else {
-                            LOG.error("Can't create folder " + destPath.getAbsolutePath());
+                            LOG.error("Can't create folder " + destFolderPath.getAbsolutePath());
                         }
                     } else {
-                        LOG.info("Folder Exists, skipping folder creation " + destPath.getAbsolutePath());
+                        LOG.info("Folder Exists, skipping folder creation " + destFolderPath.getAbsolutePath());
                     }
                 } else {
                     LOG.error("Neither a file not a folder" + entry.getPathLower());
@@ -72,10 +69,18 @@ public class DropBoxFileTransferJob implements Runnable {
      */
     public void downloadFile(DbxClientV2 client, String dropBoxFilePath, String localFileAbsolutePath, boolean retry) {
         try {
-            //TODO:If retry check if the path exists else create the path
-            //Create DbxDownloader
+            if (retry) {
+                File destPath = new File(localFileAbsolutePath);
+                if (!destPath.exists()) {
+                    boolean mkdirs = destPath.mkdirs();
+                    if (mkdirs) {
+                        LOG.info("Created Path " + destPath.getAbsolutePath());
+                    } else {
+                        LOG.error("Can't create Path " + destPath.getAbsolutePath());
+                    }
+                }
+            }
             DbxDownloader<FileMetadata> dl = client.files().download(dropBoxFilePath);
-            //FileOutputStream
             FileOutputStream fOut = new FileOutputStream(localFileAbsolutePath);
             LOG.info("*** Downloading File from.... " + dropBoxFilePath + " ...To... " + localFileAbsolutePath + " ***");
             dl.download(fOut);
