@@ -69,22 +69,24 @@ public class DropBoxFileTransfer {
         } catch (DbxException e) {
             LOG.error(e);
         } finally {
-            Objects.requireNonNull(threadPoolExecutor).shutdown();
-            if (threadPoolExecutor.awaitTermination(60, TimeUnit.DAYS)) {
-                if (failed.size() > 0) {
-                    for (String failedFile : failed) {
-                        LOG.warn("RETRYING FAILED TRANSFER " + failedFile);
-                        if (Objects.nonNull(dropBoxFileTransferJob)) {
-                            dropBoxFileTransferJob.downloadFile(dropboxClient, failedFile, destinationLocation.concat(failedFile), true);
-                        }
-                    }
-                }
-                if (finalFailedList.size() > 0) {
-                    finalFailedList.stream().map(finalTry -> "NOT PROCESSED FILE " + finalTry).forEach(LOG::error);
-                }
-                Duration duration = Duration.between(startTime, LocalDateTime.now());
-                LOG.info("Transfer Completed in " + duration.toHours() + " Hours/ " + duration.toMinutes() + " Minutes/ " + duration.toMillis() + " MilliSeconds");
-            }
+           if(Objects.nonNull(threadPoolExecutor)){
+               threadPoolExecutor.shutdown();
+               if (threadPoolExecutor.awaitTermination(60, TimeUnit.DAYS)) {
+                   if (failed.size() > 0) {
+                       for (String failedFile : failed) {
+                           LOG.warn("RETRYING FAILED TRANSFER " + failedFile);
+                           if (Objects.nonNull(dropBoxFileTransferJob)) {
+                               dropBoxFileTransferJob.downloadFile(dropboxClient, failedFile, destinationLocation.concat(failedFile), true);
+                           }
+                       }
+                   }
+                   if (finalFailedList.size() > 0) {
+                       finalFailedList.stream().map(finalTry -> "NOT PROCESSED FILE " + finalTry).forEach(LOG::error);
+                   }
+                   Duration duration = Duration.between(startTime, LocalDateTime.now());
+                   LOG.info("Transfer Completed in " + duration.toHours() + " Hours/ " + duration.toMinutes() + " Minutes/ " + duration.toMillis() + " MilliSeconds");
+               }
+           }
         }
     }
 
