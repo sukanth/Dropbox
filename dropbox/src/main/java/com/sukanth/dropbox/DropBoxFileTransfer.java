@@ -28,7 +28,7 @@ public class DropBoxFileTransfer {
     final static Logger LOG = Logger.getLogger(DropBoxFileTransfer.class);
     public static final List<String> failed = new ArrayList<>();
     public static final List<String> finalFailedList = new ArrayList<>();
-
+    public static final List<String> noOfFiles = new ArrayList<>();
     public static void main(String[] args) throws InterruptedException {
         Properties properties;
         ThreadPoolExecutor threadPoolExecutor = null;
@@ -85,6 +85,7 @@ public class DropBoxFileTransfer {
                    }
                    Duration duration = Duration.between(startTime, LocalDateTime.now());
                    LOG.info("Transfer Completed in " + duration.toHours() + " Hours/ " + duration.toMinutes() + " Minutes/ " + duration.toMillis() + " MilliSeconds");
+                   LOG.info("Processed "+(noOfFiles.size() - finalFailedList.size())+" Files");
                }
            }
         }

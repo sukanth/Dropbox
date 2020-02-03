@@ -35,6 +35,7 @@ public class DropBoxFileTransferJob implements Runnable {
                 if (entry instanceof FileMetadata) {
                     File destinationFilePath = new File(destinationLocation.concat(entry.getPathDisplay()));
                     if (!destinationFilePath.exists()) {
+                        DropBoxFileTransfer.noOfFiles.add(entry.getPathDisplay());
                         downloadFile(dropBoxClient, entry.getPathLower(), destinationFilePath.getAbsolutePath(), false);
                     } else {
                         LOG.info("File Exists, skipped file " + destinationFilePath.getAbsolutePath());
