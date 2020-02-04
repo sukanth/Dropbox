@@ -43,7 +43,6 @@ public class DropBoxFileTransfer {
         String ACCESS_TOKEN = properties.getProperty("ACCESS_TOKEN").trim();
         String CLIENT_IDENTIFIER = properties.getProperty("CLIENT_IDENTIFIER").trim();
         String DESTINATION_LOCATION = properties.getProperty("DESTINATION_LOCATION").trim();
-        String destinationLocation = usrHome.concat(File.separator.concat(DESTINATION_LOCATION));
         ListFolderBuilder listFolderBuilder;
         try {
             LOG.info("Transfer Start Time " + startTime);
@@ -58,7 +57,7 @@ public class DropBoxFileTransfer {
             LOG.info("Thread Pool Size " + threadPoolExecutor.getMaximumPoolSize());
             while (true) {
                 if (Objects.nonNull(result)) {
-                    dropBoxFileTransferJob = new DropBoxFileTransferJob(destinationLocation, result, dropboxClient);
+                    dropBoxFileTransferJob = new DropBoxFileTransferJob(DESTINATION_LOCATION, result, dropboxClient);
                     threadPoolExecutor.execute(dropBoxFileTransferJob);
                     if (!result.getHasMore()) {
                         break;
@@ -76,7 +75,7 @@ public class DropBoxFileTransfer {
                        for (String failedFile : failed) {
                            LOG.warn("RETRYING FAILED TRANSFER " + failedFile);
                            if (Objects.nonNull(dropBoxFileTransferJob)) {
-                               dropBoxFileTransferJob.downloadFile(dropboxClient, failedFile, destinationLocation.concat(failedFile), true);
+                               dropBoxFileTransferJob.downloadFile(dropboxClient, failedFile, DESTINATION_LOCATION.concat(failedFile), true);
                            }
                        }
                    }
