@@ -11,7 +11,7 @@ ACCESS_TOKEN          | DropBox Access token
 CLIENT_IDENTIFIER     | DropBox Client Identifier
 SOURCE_LOCATION       | location of the dropbox folder from where you want to copy files
 THREAD_POOL_SIZE      | mention the size of the thread pool depending upon the requirement (Used to speed up the process)
-DESTINATION_LOCATION  | location where the files should be copied to (your home directory is taken by default) Ex : my home location is <User.Home>. so the path that i give here should be  "/DesiredLocation" so the system knows your absoulute path is <User.Home>/DesiredLocation
+DESTINATION_LOCATION  | Absolute path of the  destination location.
 
 
 Any Questions can be redirected to [contact.sukanth@gmail.com](contact.sukanth@gmail.com)  
