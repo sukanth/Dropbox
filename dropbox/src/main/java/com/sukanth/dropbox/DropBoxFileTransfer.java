@@ -7,7 +7,6 @@ import com.dropbox.core.v2.files.ListFolderBuilder;
 import com.dropbox.core.v2.files.ListFolderResult;
 import org.apache.log4j.Logger;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.Duration;
@@ -28,6 +27,8 @@ public class DropBoxFileTransfer {
     public static final List<String> failed = new ArrayList<>();
     public static final List<String> finalFailedList = new ArrayList<>();
     public static final List<String> noOfFiles = new ArrayList<>();
+    public static final List<String> noOfUpdatedFiles = new ArrayList<>();
+
     public static void main(String[] args) throws InterruptedException {
         Properties properties;
         ThreadPoolExecutor threadPoolExecutor = null;
@@ -67,25 +68,28 @@ public class DropBoxFileTransfer {
         } catch (DbxException e) {
             LOG.error(e);
         } finally {
-           if(Objects.nonNull(threadPoolExecutor)){
-               threadPoolExecutor.shutdown();
-               if (threadPoolExecutor.awaitTermination(60, TimeUnit.DAYS)) {
-                   if (failed.size() > 0) {
-                       for (String failedFile : failed) {
-                           LOG.warn("RETRYING FAILED TRANSFER " + failedFile);
-                           if (Objects.nonNull(dropBoxFileTransferJob)) {
-                               dropBoxFileTransferJob.downloadFile(dropboxClient, failedFile, DESTINATION_LOCATION.concat(failedFile), true);
-                           }
-                       }
-                   }
-                   if (finalFailedList.size() > 0) {
-                       finalFailedList.stream().map(finalTry -> "NOT PROCESSED FILE " + finalTry).forEach(LOG::error);
-                   }
-                   Duration duration = Duration.between(startTime, LocalDateTime.now());
-                   LOG.info("Transfer Completed in " + duration.toHours() + " Hours/ " + duration.toMinutes() + " Minutes/ " + duration.toMillis() + " MilliSeconds");
-                   LOG.info((noOfFiles.size() - finalFailedList.size())+" Files Processed "+finalFailedList.size()+" Files Failed");
-               }
-           }
+            if (Objects.nonNull(threadPoolExecutor)) {
+                threadPoolExecutor.shutdown();
+                if (threadPoolExecutor.awaitTermination(60, TimeUnit.DAYS)) {
+                    if (failed.size() > 0) {
+                        for (String failedFile : failed) {
+                            LOG.warn("RETRYING FAILED TRANSFER " + failedFile);
+                            if (Objects.nonNull(dropBoxFileTransferJob)) {
+                                dropBoxFileTransferJob.downloadFile(dropboxClient, failedFile, DESTINATION_LOCATION.concat(failedFile), true);
+                            }
+                        }
+                    }
+                    if (finalFailedList.size() > 0) {
+                        finalFailedList.stream().map(finalTry -> "NOT PROCESSED FILE " + finalTry).forEach(LOG::error);
+                    }
+                    if (noOfUpdatedFiles.size() > 0) {
+                        noOfUpdatedFiles.stream().map(updatedFiles -> "UPDATED FILE " + updatedFiles).forEach(LOG::warn);
+                    }
+                    Duration duration = Duration.between(startTime, LocalDateTime.now());
+                    LOG.info("Transfer Completed in " + duration.toHours() + " Hours/ " + duration.toMinutes() + " Minutes/ " + duration.toMillis() + " MilliSeconds");
+                    LOG.info((noOfFiles.size() - finalFailedList.size()) + " File/Files Processed " + finalFailedList.size() + " File/Files Failed " + noOfUpdatedFiles.size() + " File/Files Updated");
+                }
+            }
         }
     }
 

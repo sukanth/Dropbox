@@ -6,10 +6,14 @@ import com.dropbox.core.v2.DbxClientV2;
 import com.dropbox.core.v2.files.FileMetadata;
 import com.dropbox.core.v2.files.FolderMetadata;
 import com.dropbox.core.v2.files.ListFolderResult;
+import com.dropbox.core.v2.files.Metadata;
 import org.apache.log4j.Logger;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 /**
  * @author sukanthgunda
@@ -38,7 +42,7 @@ public class DropBoxFileTransferJob implements Runnable {
                         DropBoxFileTransfer.noOfFiles.add(entry.getPathDisplay());
                         downloadFile(dropBoxClient, entry.getPathLower(), destinationFilePath.getAbsolutePath(), false);
                     } else {
-                        LOG.info("File Exists, skipped file " + destinationFilePath.getAbsolutePath());
+                        updateFileOrSkipIfExists(entry, destinationFilePath);
                     }
                 } else if (entry instanceof FolderMetadata) {
                     File destFolderPath = new File(destinationLocation.concat(entry.getPathDisplay()));
@@ -58,6 +62,31 @@ public class DropBoxFileTransferJob implements Runnable {
             });
         } catch (Exception e) {
             LOG.error(e);
+        }
+    }
+
+    /**
+     * @param entry
+     * @param destinationFilePath
+     * @see -updates the file if the server version of file is latest otherwise skips downloading it-
+     */
+    private void updateFileOrSkipIfExists(Metadata entry, File destinationFilePath) {
+        Date localDate;
+        Date serverDate;
+        SimpleDateFormat sdf;
+        try {
+            sdf = new SimpleDateFormat("MM-dd-yyyy HH:mm:ss");
+            localDate = sdf.parse(sdf.format(destinationFilePath.lastModified()));
+            serverDate = sdf.parse(sdf.format(((FileMetadata) entry).getClientModified()));
+            if (serverDate.after(localDate)) {
+                downloadFile(dropBoxClient, entry.getPathLower(), destinationFilePath.getAbsolutePath(), false);
+                DropBoxFileTransfer.noOfUpdatedFiles.add(entry.getPathDisplay());
+                LOG.info("File Updated " + destinationFilePath.getAbsolutePath());
+            } else {
+                LOG.info("File Exists, skipped file " + destinationFilePath.getAbsolutePath());
+            }
+        } catch (ParseException e) {
+            LOG.error("ERROR PARSING localDate and serverDate while processing " + entry.getPathLower(), e);
         }
     }
 
