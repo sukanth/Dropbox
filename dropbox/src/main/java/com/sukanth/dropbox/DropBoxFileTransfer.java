@@ -24,7 +24,6 @@ import java.util.concurrent.TimeUnit;
  * @author sukanthgunda
  */
 public class DropBoxFileTransfer {
-    private static final String usrHome = System.getProperty("user.home");
     final static Logger LOG = Logger.getLogger(DropBoxFileTransfer.class);
     public static final List<String> failed = new ArrayList<>();
     public static final List<String> finalFailedList = new ArrayList<>();
