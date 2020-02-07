@@ -20,10 +20,10 @@ import java.util.Date;
  * @apiNote Thread to copy files from dropbox to desired location.
  */
 public class DropBoxFileTransferJob implements Runnable {
-    final static Logger LOG = Logger.getLogger(DropBoxFileTransferJob.class);
-    final String destinationLocation;
-    final ListFolderResult result;
-    final DbxClientV2 dropBoxClient;
+    private final String destinationLocation;
+    private final ListFolderResult result;
+    private final DbxClientV2 dropBoxClient;
+    private static Logger logger = Logger.getLogger(DropBoxFileTransferJob.class);
 
     public DropBoxFileTransferJob(String destinationLocation, ListFolderResult result, DbxClientV2 dropBoxClient) {
         this.destinationLocation = destinationLocation;
@@ -34,13 +34,17 @@ public class DropBoxFileTransferJob implements Runnable {
     @Override
     public void run() {
         try {
-            LOG.info("Processing Thread Entries " + result.getEntries().size());
+            logger.info("Processing Thread Entries " + result.getEntries().size());
             result.getEntries().forEach(entry -> {
                 if (entry instanceof FileMetadata) {
                     File destinationFilePath = new File(destinationLocation.concat(entry.getPathDisplay()));
                     if (!destinationFilePath.exists()) {
-                        DropBoxFileTransfer.noOfFiles.add(entry.getPathDisplay());
-                        downloadFile(dropBoxClient, entry.getPathLower(), destinationFilePath.getAbsolutePath(), false);
+                        try {
+                            DropBoxFileTransfer.noOfFiles.add(entry.getPathDisplay());
+                            downloadFile(dropBoxClient, entry.getPathLower(), destinationFilePath.getAbsolutePath(), false);
+                        } catch (Exception e) {
+                            logger.error(e);
+                        }
                     } else {
                         updateFileOrSkipIfExists(entry, destinationFilePath);
                     }
@@ -49,19 +53,19 @@ public class DropBoxFileTransferJob implements Runnable {
                     if (!destFolderPath.exists()) {
                         boolean mkdirs = destFolderPath.mkdirs();
                         if (mkdirs) {
-                            LOG.info("Created Folder " + destFolderPath.getAbsolutePath());
+                            logger.info("Created Folder " + destFolderPath.getAbsolutePath());
                         } else {
-                            LOG.error("Can't create folder " + destFolderPath.getAbsolutePath());
+                            logger.error("Can't create folder " + destFolderPath.getAbsolutePath());
                         }
                     } else {
-                        LOG.info("Folder Exists, skipping folder creation " + destFolderPath.getAbsolutePath());
+                        logger.info("Folder Exists, skipping folder creation " + destFolderPath.getAbsolutePath());
                     }
                 } else {
-                    LOG.error("Neither a file not a folder" + entry.getPathLower());
+                    logger.error("Neither a file not a folder" + entry.getPathLower());
                 }
             });
         } catch (Exception e) {
-            LOG.error(e);
+            logger.error(e);
         }
     }
 
@@ -81,12 +85,14 @@ public class DropBoxFileTransferJob implements Runnable {
             if (serverDate.after(localDate)) {
                 downloadFile(dropBoxClient, entry.getPathLower(), destinationFilePath.getAbsolutePath(), false);
                 DropBoxFileTransfer.noOfUpdatedFiles.add(entry.getPathDisplay());
-                LOG.info("File Updated " + destinationFilePath.getAbsolutePath());
+                logger.info("File Updated " + destinationFilePath.getAbsolutePath());
             } else {
-                LOG.info("File Exists, skipped file " + destinationFilePath.getAbsolutePath());
+                logger.info("File Exists, skipped file " + destinationFilePath.getAbsolutePath());
             }
         } catch (ParseException e) {
-            LOG.error("ERROR PARSING localDate and serverDate while processing " + entry.getPathLower(), e);
+            logger.error("ERROR PARSING localDate and serverDate while processing " + entry.getPathLower(), e);
+        } catch (Exception e) {
+            logger.error(e);
         }
     }
 
@@ -98,36 +104,35 @@ public class DropBoxFileTransferJob implements Runnable {
      * @param localFileAbsolutePath The absolute file path of the File on the Local File System
      */
     public void downloadFile(DbxClientV2 client, String dropBoxFilePath, String localFileAbsolutePath, boolean retry) {
-        try {
+        try (FileOutputStream fOut = new FileOutputStream(localFileAbsolutePath)) {
             if (retry) {
                 File destPath = new File(localFileAbsolutePath);
                 if (!destPath.exists()) {
                     boolean mkdirs = destPath.mkdirs();
                     if (mkdirs) {
-                        LOG.info("Created Path " + destPath.getAbsolutePath());
+                        logger.info("Created Path " + destPath.getAbsolutePath());
                     } else {
-                        LOG.error("Can't create Path " + destPath.getAbsolutePath());
+                        logger.error("Can't create Path " + destPath.getAbsolutePath());
                     }
                 }
             }
             DbxDownloader<FileMetadata> dl = client.files().download(dropBoxFilePath);
-            FileOutputStream fOut = new FileOutputStream(localFileAbsolutePath);
-            LOG.info("*** Downloading File from.... " + dropBoxFilePath + " ...To... " + localFileAbsolutePath + " ***");
+            logger.info("*** Downloading File from.... " + dropBoxFilePath + " ...To... " + localFileAbsolutePath + " ***");
             dl.download(fOut);
             fOut.flush();
-            fOut.close();
         } catch (RateLimitException e) {
             try {
-                LOG.info("Waiting... " + e.getBackoffMillis() + " MilliSeconds for RateLimit Backoff " + dropBoxFilePath);
+                logger.info("Waiting... " + e.getBackoffMillis() + " MilliSeconds for RateLimit Backoff " + dropBoxFilePath);
                 DropBoxFileTransfer.failed.add(dropBoxFilePath);
                 Thread.sleep(e.getBackoffMillis());
-                LOG.info("Resuming Wait..");
+                logger.info("Resuming Wait..");
             } catch (InterruptedException ex) {
-                LOG.error(ex);
+                logger.error("ERROR : Thread Interrupted", e);
+                Thread.currentThread().interrupt();
             }
         } catch (Exception e) {
             if (retry) {
-                LOG.error("ERROR PROCESSING RETRY : From " + dropBoxFilePath + " ...To... " + localFileAbsolutePath, e);
+                logger.error("ERROR PROCESSING RETRY : From " + dropBoxFilePath + " ...To... " + localFileAbsolutePath, e);
             }
             if (!retry) {
                 DropBoxFileTransfer.failed.add(dropBoxFilePath);

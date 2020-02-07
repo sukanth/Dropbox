@@ -23,11 +23,11 @@ import java.util.concurrent.TimeUnit;
  * @author sukanthgunda
  */
 public class DropBoxFileTransfer {
-    final static Logger LOG = Logger.getLogger(DropBoxFileTransfer.class);
-    public static final List<String> failed = new ArrayList<>();
-    public static final List<String> finalFailedList = new ArrayList<>();
-    public static final List<String> noOfFiles = new ArrayList<>();
-    public static final List<String> noOfUpdatedFiles = new ArrayList<>();
+    protected static final List<String> failed = new ArrayList<>();
+    protected static final List<String> finalFailedList = new ArrayList<>();
+    protected static final List<String> noOfFiles = new ArrayList<>();
+    protected static final List<String> noOfUpdatedFiles = new ArrayList<>();
+    private static Logger logger = Logger.getLogger(DropBoxFileTransfer.class);
 
     public static void main(String[] args) throws InterruptedException {
         Properties properties;
@@ -37,27 +37,27 @@ public class DropBoxFileTransfer {
         DropBoxFileTransferJob dropBoxFileTransferJob = null;
         DbxClientV2 dropboxClient = null;
         properties = loadPropertiesFile();
-        LOG.info("Loaded Properties");
-        String SOURCE_LOCATION = properties.getProperty("SOURCE_LOCATION").trim();
-        int THREAD_POOL_SIZE = Integer.parseInt(properties.getProperty("THREAD_POOL_SIZE"));
-        String ACCESS_TOKEN = properties.getProperty("ACCESS_TOKEN").trim();
-        String CLIENT_IDENTIFIER = properties.getProperty("CLIENT_IDENTIFIER").trim();
-        String DESTINATION_LOCATION = properties.getProperty("DESTINATION_LOCATION").trim();
+        logger.info("Loaded Properties");
+        String sourceLocation = properties.getProperty("SOURCE_LOCATION").trim();
+        int threadPoolSize = Integer.parseInt(properties.getProperty("THREAD_POOL_SIZE"));
+        String accessToken = properties.getProperty("ACCESS_TOKEN").trim();
+        String clientIdentifier = properties.getProperty("CLIENT_IDENTIFIER").trim();
+        String destinationLocation = properties.getProperty("DESTINATION_LOCATION").trim();
         ListFolderBuilder listFolderBuilder;
         try {
-            LOG.info("Transfer Start Time " + startTime);
-            LOG.info("Started transferring files in " + SOURCE_LOCATION);
-            dropboxClient = authenticate(ACCESS_TOKEN, CLIENT_IDENTIFIER);
+            logger.info("Transfer Start Time " + startTime);
+            logger.info("Started transferring files in " + sourceLocation);
+            dropboxClient = authenticate(accessToken, clientIdentifier);
 
-            LOG.info("Authenticated to User " + dropboxClient.users().getCurrentAccount().getName().getDisplayName());
-            listFolderBuilder = dropboxClient.files().listFolderBuilder(SOURCE_LOCATION);
+            logger.info("Authenticated to User " + dropboxClient.users().getCurrentAccount().getName().getDisplayName());
+            listFolderBuilder = dropboxClient.files().listFolderBuilder(sourceLocation);
 
             result = listFolderBuilder.withIncludeDeleted(false).withRecursive(true).withIncludeMediaInfo(false).start();
-            threadPoolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(THREAD_POOL_SIZE);
-            LOG.info("Thread Pool Size " + threadPoolExecutor.getMaximumPoolSize());
+            threadPoolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(threadPoolSize);
+            logger.info("Thread Pool Size " + threadPoolExecutor.getMaximumPoolSize());
             while (true) {
                 if (Objects.nonNull(result)) {
-                    dropBoxFileTransferJob = new DropBoxFileTransferJob(DESTINATION_LOCATION, result, dropboxClient);
+                    dropBoxFileTransferJob = new DropBoxFileTransferJob(destinationLocation, result, dropboxClient);
                     threadPoolExecutor.execute(dropBoxFileTransferJob);
                     if (!result.getHasMore()) {
                         break;
@@ -66,28 +66,28 @@ public class DropBoxFileTransfer {
                 result = dropboxClient.files().listFolderContinue(result.getCursor());
             }
         } catch (DbxException e) {
-            LOG.error(e);
+            logger.error(e);
         } finally {
             if (Objects.nonNull(threadPoolExecutor)) {
                 threadPoolExecutor.shutdown();
                 if (threadPoolExecutor.awaitTermination(60, TimeUnit.DAYS)) {
-                    if (failed.size() > 0) {
+                    if (!failed.isEmpty()) {
                         for (String failedFile : failed) {
-                            LOG.warn("RETRYING FAILED TRANSFER " + failedFile);
+                            logger.warn("RETRYING FAILED TRANSFER " + failedFile);
                             if (Objects.nonNull(dropBoxFileTransferJob)) {
-                                dropBoxFileTransferJob.downloadFile(dropboxClient, failedFile, DESTINATION_LOCATION.concat(failedFile), true);
+                                dropBoxFileTransferJob.downloadFile(dropboxClient, failedFile, destinationLocation.concat(failedFile), true);
                             }
                         }
                     }
-                    if (finalFailedList.size() > 0) {
-                        finalFailedList.stream().map(finalTry -> "NOT PROCESSED FILE " + finalTry).forEach(LOG::error);
+                    if (!finalFailedList.isEmpty()) {
+                        finalFailedList.stream().map(finalTry -> "NOT PROCESSED FILE " + finalTry).forEach(logger::error);
                     }
-                    if (noOfUpdatedFiles.size() > 0) {
-                        noOfUpdatedFiles.stream().map(updatedFiles -> "UPDATED FILE " + updatedFiles).forEach(LOG::warn);
+                    if (!noOfUpdatedFiles.isEmpty()) {
+                        noOfUpdatedFiles.stream().map(updatedFiles -> "UPDATED FILE " + updatedFiles).forEach(logger::warn);
                     }
                     Duration duration = Duration.between(startTime, LocalDateTime.now());
-                    LOG.info("Transfer Completed in " + duration.toHours() + " Hours/ " + duration.toMinutes() + " Minutes/ " + duration.toMillis() + " MilliSeconds");
-                    LOG.info((noOfFiles.size() - finalFailedList.size()) + " File/Files Processed " + finalFailedList.size() + " File/Files Failed " + noOfUpdatedFiles.size() + " File/Files Updated");
+                    logger.info("Transfer Completed in " + duration.toHours() + " Hours/ " + duration.toMinutes() + " Minutes/ " + duration.toMillis() + " MilliSeconds");
+                    logger.info((noOfFiles.size() - finalFailedList.size()) + " File/Files Processed " + finalFailedList.size() + " File/Files Failed " + noOfUpdatedFiles.size() + " File/Files Updated");
                 }
             }
         }
@@ -98,15 +98,15 @@ public class DropBoxFileTransfer {
      *
      * @return {@link DbxClientV2}
      */
-    public static DbxClientV2 authenticate(String ACCESS_TOKEN, String CLIENT_IDENTIFIER) {
+    public static DbxClientV2 authenticate(String accessToken, String clientIdentifier) {
         DbxRequestConfig config = null;
         try {
-            ACCESS_TOKEN = ACCESS_TOKEN.trim();
-            config = DbxRequestConfig.newBuilder(CLIENT_IDENTIFIER.trim()).build();
+            accessToken = accessToken.trim();
+            config = DbxRequestConfig.newBuilder(clientIdentifier.trim()).build();
         } catch (Exception e) {
-            LOG.error(e);
+            logger.error(e);
         }
-        return new DbxClientV2(Objects.requireNonNull(config), ACCESS_TOKEN);
+        return new DbxClientV2(Objects.requireNonNull(config), accessToken);
     }
 
     /**
@@ -123,7 +123,7 @@ public class DropBoxFileTransfer {
             }
             prop.load(inputStream);
         } catch (IOException ex) {
-            LOG.error(ex.getMessage(), ex);
+            logger.error(ex.getMessage(), ex);
             System.exit(0);
         }
         return prop;
