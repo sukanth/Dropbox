@@ -53,7 +53,7 @@ public class DropBoxFileTransfer {
 
       result =
           listFolderBuilder
-              .withIncludeDeleted(false)
+              .withIncludeDeleted(true)
               .withRecursive(true)
               .withIncludeMediaInfo(false)
               .start();

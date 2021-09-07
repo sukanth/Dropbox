@@ -3,15 +3,16 @@ package com.sukanth.dropbox;
 import com.dropbox.core.DbxDownloader;
 import com.dropbox.core.RateLimitException;
 import com.dropbox.core.v2.DbxClientV2;
-import com.dropbox.core.v2.files.FileMetadata;
-import com.dropbox.core.v2.files.FolderMetadata;
-import com.dropbox.core.v2.files.ListFolderResult;
-import com.dropbox.core.v2.files.Metadata;
+import com.dropbox.core.v2.files.*;
+
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+
+import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 
 /**
@@ -71,12 +72,39 @@ public class DropBoxFileTransferJob implements Runnable {
                         "Folder Exists, skipping folder creation "
                             + destFolderPath.getAbsolutePath());
                   }
-                } else {
-                  logger.error("Neither a file not a folder" + entry.getPathLower());
+                } else if (entry instanceof DeletedMetadata) {
+                  File destinationPathToDelete =
+                          new File(destinationLocation.concat(entry.getPathDisplay()));
+                  cleanUpDeletedFiles(destinationPathToDelete);
+                }
+                  else {
+                  logger.error("Neither a file not a folder / deleted metadata" + entry.getPathLower());
                 }
               });
     } catch (Exception e) {
       logger.error(e);
+    }
+  }
+
+  /**
+   * @param destinationPathToDelete
+   * @see -deletes files/folders in the host machine that are not in sync with the dropbox.
+   */
+  private void cleanUpDeletedFiles(File destinationPathToDelete) {
+    if (destinationPathToDelete.exists()) {
+      if (destinationPathToDelete.isFile()) {
+        destinationPathToDelete.delete();
+        logger.info("Deleted File: " + destinationPathToDelete.getAbsolutePath());
+      } else if (destinationPathToDelete.isDirectory()) {
+        try {
+          FileUtils.deleteDirectory(destinationPathToDelete);
+          logger.info("Deleted Folder: " + destinationPathToDelete.getAbsolutePath());
+        } catch (IOException e) {
+          logger.error(e);
+        }
+      } else {
+        logger.error("Neither a file not a folder to delete: " + destinationPathToDelete.getAbsolutePath());
+      }
     }
   }
 
