@@ -36,6 +36,7 @@ public class DropBoxFileTransfer {
     properties = loadPropertiesFile();
     logger.info("Loaded Properties");
     String sourceLocation = properties.getProperty("SOURCE_LOCATION").trim();
+    boolean includedDeleted = Boolean.parseBoolean(properties.getProperty("INCLUDE_DELETED").trim());
     int threadPoolSize = Integer.parseInt(properties.getProperty("THREAD_POOL_SIZE"));
     String accessToken = properties.getProperty("ACCESS_TOKEN").trim();
     String clientIdentifier = properties.getProperty("CLIENT_IDENTIFIER").trim();
@@ -53,7 +54,7 @@ public class DropBoxFileTransfer {
 
       result =
           listFolderBuilder
-              .withIncludeDeleted(true)
+              .withIncludeDeleted(includedDeleted)
               .withRecursive(true)
               .withIncludeMediaInfo(false)
               .start();

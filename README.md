@@ -12,6 +12,7 @@ CLIENT_IDENTIFIER     | DropBox Client Identifier
 SOURCE_LOCATION       | location of the dropbox folder from where you want to copy files
 THREAD_POOL_SIZE      | mention the size of the thread pool depending upon the requirement (Used to speed up the process)
 DESTINATION_LOCATION  | Absolute path of the  destination location.
+INCLUDE_DELETED       | Boolean value True/false to include / not include deleted files on dropbox.
 
 
 Any Questions can be redirected to [contact.sukanth@gmail.com](contact.sukanth@gmail.com)  
