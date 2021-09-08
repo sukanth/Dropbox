@@ -4,14 +4,12 @@ import com.dropbox.core.DbxDownloader;
 import com.dropbox.core.RateLimitException;
 import com.dropbox.core.v2.DbxClientV2;
 import com.dropbox.core.v2.files.*;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 
@@ -74,11 +72,11 @@ public class DropBoxFileTransferJob implements Runnable {
                   }
                 } else if (entry instanceof DeletedMetadata) {
                   File destinationPathToDelete =
-                          new File(destinationLocation.concat(entry.getPathDisplay()));
+                      new File(destinationLocation.concat(entry.getPathDisplay()));
                   cleanUpDeletedFiles(destinationPathToDelete);
-                }
-                  else {
-                  logger.error("Neither a file not a folder / deleted metadata" + entry.getPathLower());
+                } else {
+                  logger.error(
+                      "Neither a file not a folder / deleted metadata" + entry.getPathLower());
                 }
               });
     } catch (Exception e) {
@@ -94,16 +92,19 @@ public class DropBoxFileTransferJob implements Runnable {
     if (destinationPathToDelete.exists()) {
       if (destinationPathToDelete.isFile()) {
         destinationPathToDelete.delete();
+        DropBoxFileTransfer.noOfFilesDeleted.add(destinationPathToDelete.getAbsolutePath());
         logger.info("Deleted File: " + destinationPathToDelete.getAbsolutePath());
       } else if (destinationPathToDelete.isDirectory()) {
         try {
           FileUtils.deleteDirectory(destinationPathToDelete);
+          DropBoxFileTransfer.noOfFoldersDeleted.add(destinationPathToDelete.getAbsolutePath());
           logger.info("Deleted Folder: " + destinationPathToDelete.getAbsolutePath());
         } catch (IOException e) {
           logger.error(e);
         }
       } else {
-        logger.error("Neither a file not a folder to delete: " + destinationPathToDelete.getAbsolutePath());
+        logger.error(
+            "Neither a file not a folder to delete: " + destinationPathToDelete.getAbsolutePath());
       }
     }
   }
