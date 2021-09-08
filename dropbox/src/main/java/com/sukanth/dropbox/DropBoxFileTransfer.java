@@ -113,8 +113,8 @@ public class DropBoxFileTransfer {
           logger.info((noOfFiles.size() - finalFailedList.size() + " File/Files Processed "));
           logger.info(finalFailedList.size() + " File/Files Failed ");
           logger.info(noOfUpdatedFiles.size() + " File/Files Updated ");
-          logger.info(noOfFilesDeleted.size() + " Files Deleted");
-          logger.info(noOfFoldersDeleted.size() + " Folders Deleted");
+          logger.info(noOfFilesDeleted.size() + " File/s Deleted");
+          logger.info(noOfFoldersDeleted.size() + " Folder/s Deleted");
         }
       }
     }
