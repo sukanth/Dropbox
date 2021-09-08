@@ -1,37 +1,25 @@
-## Welcome to GitHub Pages
+## Introduction
 
-You can use the [editor on GitHub](https://github.com/sukanth/Dropbox/edit/master/docs/index.md) to maintain and preview the content for your website in Markdown files.
+This job can be leveraged to run when users want to take a backup/sync files that are present in dropbox account
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+## Purpose
+The purpose of this is job is to transfer files from dropbox to the desired location on the host system / any NAS on the host network. 
 
-### Markdown
+## Execution
+>Before you run this job go to the [config.properties](https://github.com/sukanth/Dropbox/blob/master/dropbox/src/main/resources/config.properties) file and configure the below properties and run the [DropBoxFileTransfer.java](https://github.com/sukanth/Dropbox/blob/master/dropbox/src/main/java/com/sukanth/dropbox/DropBoxFileTransfer.java) file.
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+> Logs are created under **../resources/logs**
 
-```markdown
-Syntax highlighted code block
-
-# Header 1
-## Header 2
-### Header 3
-
-- Bulleted
-- List
-
-1. Numbered
-2. List
-
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
-```
-
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
-
-### Jekyll Themes
-
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/sukanth/Dropbox/settings/pages). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
+Property              | Description
+-------------         | -------------
+ACCESS_TOKEN          | DropBox Access token
+CLIENT_IDENTIFIER     | DropBox Client Identifier
+SOURCE_LOCATION       | location of the dropbox folder from where you want to copy files
+THREAD_POOL_SIZE      | mention the size of the thread pool depending upon the requirement (Used to speed up the process)
+DESTINATION_LOCATION  | Absolute path of the  destination location.
+INCLUDE_DELETED       | Boolean value True/false to include / not include deleted files on dropbox.
 
 ### Support or Contact
 
-Having trouble with Pages? Check out our [documentation](https://docs.github.com/categories/github-pages-basics/) or [contact support](https://support.github.com/contact) and we’ll help you sort it out.
+Having trouble with something? questions can be redirected to [contact.sukanth@gmail.com](contact.sukanth@gmail.com)  
+
