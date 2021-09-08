@@ -24,6 +24,8 @@ public class DropBoxFileTransfer {
   protected static final List<String> finalFailedList = new ArrayList<>();
   protected static final List<String> noOfFiles = new ArrayList<>();
   protected static final List<String> noOfUpdatedFiles = new ArrayList<>();
+  protected static final List<String> noOfFoldersDeleted = new ArrayList<>();
+  protected static final List<String> noOfFilesDeleted = new ArrayList<>();
   private static Logger logger = Logger.getLogger(DropBoxFileTransfer.class);
 
   public static void main(String[] args) throws InterruptedException {
@@ -36,6 +38,8 @@ public class DropBoxFileTransfer {
     properties = loadPropertiesFile();
     logger.info("Loaded Properties");
     String sourceLocation = properties.getProperty("SOURCE_LOCATION").trim();
+    boolean includedDeleted =
+        Boolean.parseBoolean(properties.getProperty("INCLUDE_DELETED").trim());
     int threadPoolSize = Integer.parseInt(properties.getProperty("THREAD_POOL_SIZE"));
     String accessToken = properties.getProperty("ACCESS_TOKEN").trim();
     String clientIdentifier = properties.getProperty("CLIENT_IDENTIFIER").trim();
@@ -53,7 +57,7 @@ public class DropBoxFileTransfer {
 
       result =
           listFolderBuilder
-              .withIncludeDeleted(false)
+              .withIncludeDeleted(includedDeleted)
               .withRecursive(true)
               .withIncludeMediaInfo(false)
               .start();
@@ -106,13 +110,11 @@ public class DropBoxFileTransfer {
                   + " Minutes/ "
                   + duration.toMillis()
                   + " MilliSeconds");
-          logger.info(
-              (noOfFiles.size() - finalFailedList.size())
-                  + " File/Files Processed "
-                  + finalFailedList.size()
-                  + " File/Files Failed "
-                  + noOfUpdatedFiles.size()
-                  + " File/Files Updated");
+          logger.info((noOfFiles.size() - finalFailedList.size() + " File/Files Processed "));
+          logger.info(finalFailedList.size() + " File/Files Failed ");
+          logger.info(noOfUpdatedFiles.size() + " File/Files Updated ");
+          logger.info(noOfFilesDeleted.size() + " File/s Deleted");
+          logger.info(noOfFoldersDeleted.size() + " Folder/s Deleted");
         }
       }
     }
