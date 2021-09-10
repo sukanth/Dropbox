@@ -44,7 +44,6 @@ public class DropBoxFileTransfer {
     String accessToken = properties.getProperty("ACCESS_TOKEN").trim();
     String clientIdentifier = properties.getProperty("CLIENT_IDENTIFIER").trim();
     String destinationLocation = properties.getProperty("DESTINATION_LOCATION").trim();
-    ListFolderBuilder listFolderBuilder;
     try {
       logger.info("Transfer Start Time " + startTime);
       logger.info("Started transferring files in " + sourceLocation);
