@@ -53,14 +53,15 @@ public class DropBoxFileTransfer {
       logger.info(
           "Authenticated to User "
               + dropboxClient.users().getCurrentAccount().getName().getDisplayName());
-      listFolderBuilder = dropboxClient.files().listFolderBuilder(sourceLocation);
-
       result =
-          listFolderBuilder
+          dropboxClient
+              .files()
+              .listFolderBuilder(sourceLocation)
               .withIncludeDeleted(includedDeleted)
               .withRecursive(true)
               .withIncludeMediaInfo(false)
               .start();
+
       threadPoolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(threadPoolSize);
       logger.info("Thread Pool Size " + threadPoolExecutor.getMaximumPoolSize());
       while (true) {
