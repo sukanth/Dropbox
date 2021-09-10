@@ -175,6 +175,8 @@ public class DropBoxFileTransferJob implements Runnable {
         logger.error("ERROR : Thread Interrupted", e);
         Thread.currentThread().interrupt();
       }
+    } catch (IOException ioException) {
+      logger.error(ioException);
     } catch (Exception e) {
       if (retry) {
         logger.error(
