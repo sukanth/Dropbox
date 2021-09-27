@@ -7,9 +7,6 @@ import com.dropbox.core.v2.files.*;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 
@@ -39,6 +36,7 @@ public class DropBoxFileTransferJob implements Runnable {
           .forEach(
               entry -> {
                 if (entry instanceof FileMetadata) {
+                  logger.info("Processing file: " + entry.getPathDisplay());
                   File destinationFilePath =
                       new File(destinationLocation.concat(entry.getPathDisplay()));
                   if (!destinationFilePath.exists()) {
@@ -112,17 +110,15 @@ public class DropBoxFileTransferJob implements Runnable {
   /**
    * @param entry
    * @param destinationFilePath
-   * @see -updates the file if the server version of file is latest otherwise skips downloading it-
+   * @see -updates the file if the server version of file is latest otherwise skips downloading it
+   *     based on content hashing
    */
   private void updateFileOrSkipIfExists(Metadata entry, File destinationFilePath) {
-    Date localDate;
-    Date serverDate;
-    SimpleDateFormat sdf;
     try {
-      sdf = new SimpleDateFormat("MM-dd-yyyy HH:mm:ss");
-      localDate = sdf.parse(sdf.format(destinationFilePath.lastModified()));
-      serverDate = sdf.parse(sdf.format(((FileMetadata) entry).getClientModified()));
-      if (serverDate.after(localDate)) {
+      String localHash =
+          LocalContentHashResolver.generateLocalContentHash(destinationFilePath.getAbsolutePath());
+
+      if (!((FileMetadata) entry).getContentHash().equalsIgnoreCase(localHash)) {
         downloadFile(
             dropBoxClient, entry.getPathLower(), destinationFilePath.getAbsolutePath(), false);
         DropBoxFileTransfer.noOfUpdatedFiles.add(entry.getPathDisplay());
@@ -130,9 +126,6 @@ public class DropBoxFileTransferJob implements Runnable {
       } else {
         logger.info("File Exists, skipped file " + destinationFilePath.getAbsolutePath());
       }
-    } catch (ParseException e) {
-      logger.error(
-          "ERROR PARSING localDate and serverDate while processing " + entry.getPathLower(), e);
     } catch (Exception e) {
       logger.error(e);
     }
@@ -182,6 +175,8 @@ public class DropBoxFileTransferJob implements Runnable {
         logger.error("ERROR : Thread Interrupted", e);
         Thread.currentThread().interrupt();
       }
+    } catch (IOException ioException) {
+      logger.error(ioException);
     } catch (Exception e) {
       if (retry) {
         logger.error(

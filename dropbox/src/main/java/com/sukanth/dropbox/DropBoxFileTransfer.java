@@ -3,7 +3,6 @@ package com.sukanth.dropbox;
 import com.dropbox.core.DbxException;
 import com.dropbox.core.DbxRequestConfig;
 import com.dropbox.core.v2.DbxClientV2;
-import com.dropbox.core.v2.files.ListFolderBuilder;
 import com.dropbox.core.v2.files.ListFolderResult;
 import java.io.IOException;
 import java.io.InputStream;
@@ -44,7 +43,6 @@ public class DropBoxFileTransfer {
     String accessToken = properties.getProperty("ACCESS_TOKEN").trim();
     String clientIdentifier = properties.getProperty("CLIENT_IDENTIFIER").trim();
     String destinationLocation = properties.getProperty("DESTINATION_LOCATION").trim();
-    ListFolderBuilder listFolderBuilder;
     try {
       logger.info("Transfer Start Time " + startTime);
       logger.info("Started transferring files in " + sourceLocation);
@@ -53,14 +51,15 @@ public class DropBoxFileTransfer {
       logger.info(
           "Authenticated to User "
               + dropboxClient.users().getCurrentAccount().getName().getDisplayName());
-      listFolderBuilder = dropboxClient.files().listFolderBuilder(sourceLocation);
-
       result =
-          listFolderBuilder
+          dropboxClient
+              .files()
+              .listFolderBuilder(sourceLocation)
               .withIncludeDeleted(includedDeleted)
               .withRecursive(true)
               .withIncludeMediaInfo(false)
               .start();
+
       threadPoolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(threadPoolSize);
       logger.info("Thread Pool Size " + threadPoolExecutor.getMaximumPoolSize());
       while (true) {
