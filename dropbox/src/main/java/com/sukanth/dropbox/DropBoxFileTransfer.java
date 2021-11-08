@@ -15,6 +15,7 @@ import java.util.Properties;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import com.dropbox.core.v2.files.Metadata;
 import org.apache.log4j.Logger;
 
 /** @author sukanthgunda */
@@ -43,6 +44,7 @@ public class DropBoxFileTransfer {
     String accessToken = properties.getProperty("ACCESS_TOKEN").trim();
     String clientIdentifier = properties.getProperty("CLIENT_IDENTIFIER").trim();
     String destinationLocation = properties.getProperty("DESTINATION_LOCATION").trim();
+    List<Metadata> listFolderResultsMetadata = new ArrayList<>();
     try {
       logger.info("Transfer Start Time " + startTime);
       logger.info("Started transferring files in " + sourceLocation);
@@ -64,15 +66,21 @@ public class DropBoxFileTransfer {
       logger.info("Thread Pool Size " + threadPoolExecutor.getMaximumPoolSize());
       while (true) {
         if (Objects.nonNull(result)) {
-          dropBoxFileTransferJob =
-              new DropBoxFileTransferJob(destinationLocation, result, dropboxClient);
-          threadPoolExecutor.execute(dropBoxFileTransferJob);
+          List<Metadata> metadataList = result.getEntries();
+          for (Metadata resultMetaData : metadataList) {
+            listFolderResultsMetadata.add(resultMetaData);
+            dropBoxFileTransferJob =
+                new DropBoxFileTransferJob(destinationLocation, resultMetaData, dropboxClient);
+            threadPoolExecutor.execute(dropBoxFileTransferJob);
+          }
           if (!result.getHasMore()) {
             break;
           }
         }
         result = dropboxClient.files().listFolderContinue(result.getCursor());
       }
+      logger.info("Total no of files to be processed: " + listFolderResultsMetadata.size());
+
     } catch (DbxException e) {
       logger.error(e);
     } finally {
@@ -89,14 +97,12 @@ public class DropBoxFileTransfer {
             }
           }
           if (!finalFailedList.isEmpty()) {
-            finalFailedList
-                .stream()
+            finalFailedList.stream()
                 .map(finalTry -> "NOT PROCESSED FILE " + finalTry)
                 .forEach(logger::error);
           }
           if (!noOfUpdatedFiles.isEmpty()) {
-            noOfUpdatedFiles
-                .stream()
+            noOfUpdatedFiles.stream()
                 .map(updatedFiles -> "UPDATED FILE " + updatedFiles)
                 .forEach(logger::warn);
           }

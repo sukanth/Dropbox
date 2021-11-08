@@ -16,12 +16,12 @@ import org.apache.log4j.Logger;
  */
 public class DropBoxFileTransferJob implements Runnable {
   private final String destinationLocation;
-  private final ListFolderResult result;
+  private final Metadata result;
   private final DbxClientV2 dropBoxClient;
   private static Logger logger = Logger.getLogger(DropBoxFileTransferJob.class);
 
   public DropBoxFileTransferJob(
-      String destinationLocation, ListFolderResult result, DbxClientV2 dropBoxClient) {
+      String destinationLocation, Metadata result, DbxClientV2 dropBoxClient) {
     this.destinationLocation = destinationLocation;
     this.result = result;
     this.dropBoxClient = dropBoxClient;
@@ -30,53 +30,39 @@ public class DropBoxFileTransferJob implements Runnable {
   @Override
   public void run() {
     try {
-      logger.info("Processing Thread Entries " + result.getEntries().size());
-      result
-          .getEntries()
-          .forEach(
-              entry -> {
-                if (entry instanceof FileMetadata) {
-                  logger.info("Processing file: " + entry.getPathDisplay());
-                  File destinationFilePath =
-                      new File(destinationLocation.concat(entry.getPathDisplay()));
-                  if (!destinationFilePath.exists()) {
-                    try {
-                      DropBoxFileTransfer.noOfFiles.add(entry.getPathDisplay());
-                      downloadFile(
-                          dropBoxClient,
-                          entry.getPathLower(),
-                          destinationFilePath.getAbsolutePath(),
-                          false);
-                    } catch (Exception e) {
-                      logger.error(e);
-                    }
-                  } else {
-                    updateFileOrSkipIfExists(entry, destinationFilePath);
-                  }
-                } else if (entry instanceof FolderMetadata) {
-                  File destFolderPath =
-                      new File(destinationLocation.concat(entry.getPathDisplay()));
-                  if (!destFolderPath.exists()) {
-                    boolean mkdirs = destFolderPath.mkdirs();
-                    if (mkdirs) {
-                      logger.info("Created Folder " + destFolderPath.getAbsolutePath());
-                    } else {
-                      logger.error("Can't create folder " + destFolderPath.getAbsolutePath());
-                    }
-                  } else {
-                    logger.info(
-                        "Folder Exists, skipping folder creation "
-                            + destFolderPath.getAbsolutePath());
-                  }
-                } else if (entry instanceof DeletedMetadata) {
-                  File destinationPathToDelete =
-                      new File(destinationLocation.concat(entry.getPathDisplay()));
-                  cleanUpDeletedFiles(destinationPathToDelete);
-                } else {
-                  logger.error(
-                      "Neither a file not a folder / deleted metadata" + entry.getPathLower());
-                }
-              });
+      if (result instanceof FileMetadata) {
+        File destinationFilePath = new File(destinationLocation.concat(result.getPathDisplay()));
+        if (!destinationFilePath.exists()) {
+          try {
+            DropBoxFileTransfer.noOfFiles.add(result.getPathDisplay());
+            downloadFile(
+                dropBoxClient, result.getPathLower(), destinationFilePath.getAbsolutePath(), false);
+          } catch (Exception e) {
+            logger.error(e);
+          }
+        } else {
+          updateFileOrSkipIfExists(result, destinationFilePath);
+        }
+      } else if (result instanceof FolderMetadata) {
+        File destFolderPath = new File(destinationLocation.concat(result.getPathDisplay()));
+        if (!destFolderPath.exists()) {
+          boolean mkdirs = destFolderPath.mkdirs();
+          if (mkdirs) {
+            logger.info("Created Folder " + destFolderPath.getAbsolutePath());
+          } else {
+            logger.error("Can't create folder " + destFolderPath.getAbsolutePath());
+          }
+        } else {
+          logger.info(
+              "Folder Exists, skipping folder creation " + destFolderPath.getAbsolutePath());
+        }
+      } else if (result instanceof DeletedMetadata) {
+        File destinationPathToDelete =
+            new File(destinationLocation.concat(result.getPathDisplay()));
+        cleanUpDeletedFiles(destinationPathToDelete);
+      } else {
+        logger.error("Neither a file not a folder / deleted metadata" + result.getPathLower());
+      }
     } catch (Exception e) {
       logger.error(e);
     }
@@ -104,6 +90,9 @@ public class DropBoxFileTransferJob implements Runnable {
         logger.error(
             "Neither a file not a folder to delete: " + destinationPathToDelete.getAbsolutePath());
       }
+    }
+    else{
+      logger.info("No file present to delete");
     }
   }
 
