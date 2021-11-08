@@ -16,6 +16,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import com.dropbox.core.v2.files.Metadata;
+import com.sukanth.dropbox.pojo.DropBoxApplicationProperties;
 import org.apache.log4j.Logger;
 
 /** @author sukanthgunda */
@@ -29,7 +30,7 @@ public class DropBoxFileTransfer {
   private static Logger logger = Logger.getLogger(DropBoxFileTransfer.class);
 
   public static void main(String[] args) throws InterruptedException {
-    Properties properties;
+    DropBoxApplicationProperties properties;
     ThreadPoolExecutor threadPoolExecutor = null;
     ListFolderResult result;
     LocalDateTime startTime = LocalDateTime.now();
@@ -37,18 +38,12 @@ public class DropBoxFileTransfer {
     DbxClientV2 dropboxClient = null;
     properties = loadPropertiesFile();
     logger.info("Loaded Properties");
-    String sourceLocation = properties.getProperty("SOURCE_LOCATION").trim();
-    boolean includedDeleted =
-        Boolean.parseBoolean(properties.getProperty("INCLUDE_DELETED").trim());
-    int threadPoolSize = Integer.parseInt(properties.getProperty("THREAD_POOL_SIZE"));
-    String accessToken = properties.getProperty("ACCESS_TOKEN").trim();
-    String clientIdentifier = properties.getProperty("CLIENT_IDENTIFIER").trim();
-    String destinationLocation = properties.getProperty("DESTINATION_LOCATION").trim();
+
     List<Metadata> listFolderResultsMetadata = new ArrayList<>();
     try {
       logger.info("Transfer Start Time " + startTime);
-      logger.info("Started transferring files in " + sourceLocation);
-      dropboxClient = authenticate(accessToken, clientIdentifier);
+      logger.info("Started transferring files in " + properties.getSourceLocation());
+      dropboxClient = authenticate(properties.getAccessToken(), properties.getAccessToken());
 
       logger.info(
           "Authenticated to User "
@@ -56,13 +51,14 @@ public class DropBoxFileTransfer {
       result =
           dropboxClient
               .files()
-              .listFolderBuilder(sourceLocation)
-              .withIncludeDeleted(includedDeleted)
+              .listFolderBuilder(loadPropertiesFile().getSourceLocation())
+              .withIncludeDeleted(properties.isIncludedDeleted())
               .withRecursive(true)
               .withIncludeMediaInfo(false)
               .start();
 
-      threadPoolExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(threadPoolSize);
+      threadPoolExecutor =
+          (ThreadPoolExecutor) Executors.newFixedThreadPool(properties.getThreadPooSize());
       logger.info("Thread Pool Size " + threadPoolExecutor.getMaximumPoolSize());
       while (true) {
         if (Objects.nonNull(result)) {
@@ -70,7 +66,8 @@ public class DropBoxFileTransfer {
           for (Metadata resultMetaData : metadataList) {
             listFolderResultsMetadata.add(resultMetaData);
             dropBoxFileTransferJob =
-                new DropBoxFileTransferJob(destinationLocation, resultMetaData, dropboxClient);
+                new DropBoxFileTransferJob(
+                    properties.getDestinationLocation(), resultMetaData, dropboxClient);
             threadPoolExecutor.execute(dropBoxFileTransferJob);
           }
           if (!result.getHasMore()) {
@@ -92,7 +89,10 @@ public class DropBoxFileTransfer {
               logger.warn("RETRYING FAILED TRANSFER " + failedFile);
               if (Objects.nonNull(dropBoxFileTransferJob)) {
                 dropBoxFileTransferJob.downloadFile(
-                    dropboxClient, failedFile, destinationLocation.concat(failedFile), true);
+                    dropboxClient,
+                    failedFile,
+                    loadPropertiesFile().getDestinationLocation().concat(failedFile),
+                    true);
               }
             }
           }
@@ -146,8 +146,9 @@ public class DropBoxFileTransfer {
    *
    * @return prop
    */
-  public static Properties loadPropertiesFile() {
-    Properties prop = null;
+  public static DropBoxApplicationProperties loadPropertiesFile() {
+    Properties prop;
+    DropBoxApplicationProperties dropBoxApplicationProperties = new DropBoxApplicationProperties();
     try (InputStream inputStream =
         DropBoxFileTransfer.class.getClassLoader().getResourceAsStream("config.properties")) {
       prop = new Properties();
@@ -155,10 +156,22 @@ public class DropBoxFileTransfer {
         throw new IOException("Unable to find config.properties");
       }
       prop.load(inputStream);
+
+      dropBoxApplicationProperties.setAccessToken(prop.getProperty("ACCESS_TOKEN").trim());
+      dropBoxApplicationProperties.setClientIdentifier(
+          prop.getProperty("CLIENT_IDENTIFIER").trim());
+      dropBoxApplicationProperties.setSourceLocation(prop.getProperty("SOURCE_LOCATION").trim());
+      dropBoxApplicationProperties.setIncludedDeleted(
+          Boolean.parseBoolean(prop.getProperty("INCLUDE_DELETED").trim()));
+      dropBoxApplicationProperties.setThreadPooSize(
+          Integer.parseInt(prop.getProperty("THREAD_POOL_SIZE")));
+      dropBoxApplicationProperties.setDestinationLocation(
+          prop.getProperty("DESTINATION_LOCATION").trim());
+
     } catch (IOException ex) {
       logger.error(ex.getMessage(), ex);
       System.exit(0);
     }
-    return prop;
+    return dropBoxApplicationProperties;
   }
 }
