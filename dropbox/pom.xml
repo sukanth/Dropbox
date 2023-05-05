@@ -15,6 +15,10 @@
         <java-version>1.8</java-version>
         <junit.version>4.12</junit.version>
     </properties>
+    <ciManagement>
+        <system>CircleCI</system>
+        <url>https://circleci.com/gh/sukanth/Dropbox</url>
+    </ciManagement>
 
     <dependencies>
         <!-- https://mvnrepository.com/artifact/com.dropbox.core/dropbox-core-sdk -->
